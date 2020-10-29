@@ -2,7 +2,7 @@
 import serial
 import json
 
-pdoa_port = serial.Serial('/dev/ttyACM0') #open the serial port (for PDoA)
+pdoa_port = serial.Serial('/dev/ttyACM0', timeout=1) #open the serial port (for PDoA)
 print("Reading from " + pdoa_port.name)
 pdoa_port.readline().decode('UTF-8') #remove the first message, usually messed up
 while True:

@@ -3,7 +3,7 @@ import serial
 import json
 import numpy as np
 
-pdoa_port = serial.Serial('/dev/ttyACM0') #open the serial port (for PDoA)
+pdoa_port = serial.Serial('/dev/ttyACM0', timeout=1) #open the serial port (for PDoA)
 print("Reading from " + pdoa_port.name)
 pdoa_port.readline().decode('UTF-8') #remove the first message, usually messed up
 MAX_I = 5 #the number of values to take a running average of
@@ -13,6 +13,7 @@ if datastring:
 running_D = np.full(MAX_I, dataJSON["TWR"]["D"]) #initialise the matrices with the first value read
 running_Xcm = np.full(MAX_I, dataJSON["TWR"]["Xcm"])
 running_Ycm = np.full(MAX_I, dataJSON["TWR"]["Ycm"])
+running_P = np.full(MAX_I, dataJSON["TWR"]["P"])
 i = 0
 while True:
     datastring = pdoa_port.readline().decode('UTF-8') #read until '\n' from port, decode to string
@@ -22,5 +23,6 @@ while True:
         running_D[i] = dataJSON["TWR"]["D"] #enter the new value into the array, overwriting the oldest one
         running_Xcm[i] = dataJSON["TWR"]["Xcm"]
         running_Ycm[i] = dataJSON["TWR"]["Ycm"]
+        running_P[i] = dataJSON["TWR"]["P"]
         i = (i+1)%MAX_I #increment i and wraparound
-        print("5-average of D is {} cm, X is {} cm, Y is {} cm".format(running_D.mean(),running_Xcm.mean(),running_Ycm.mean()))
+        print("5-average of D is {} cm, X is {} cm, Y is {} cm, P is {} deg".format(running_D.mean(),running_Xcm.mean(),running_Ycm.mean(),running_P.mean()))
