@@ -11,7 +11,7 @@ pdoa_port.readline().decode('UTF-8') #remove the first message, usually messed u
 datastring = pdoa_port.readline().decode('UTF-8') #read until '\n' from port, decode to string
 if datastring:
     dataJSON = json.loads(datastring[datastring.index('{'):]) #remove JSxxxx prefix to make it readable by loads
-writer = csv.writer(open("pdoa_output_100sec.csv","w"), delimiter=",") #start the csv writer with the opened csv file
+writer = csv.writer(open("pdoa_output_100sec_60_10.csv","w"), delimiter=",") #start the csv writer with the opened csv file
 print("Recording for 100 seconds...")
 now = time.time() #start the time here
 while (time.time() - now < 100): #keep running until 10 second have passed

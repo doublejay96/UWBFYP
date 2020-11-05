@@ -6,7 +6,7 @@ import numpy as np
 pdoa_port = serial.Serial('/dev/ttyACM0', timeout=1) #open the serial port (for PDoA)
 print("Reading from " + pdoa_port.name)
 pdoa_port.readline().decode('UTF-8') #remove the first message, usually messed up
-MAX_I = 5 #the number of values to take a running average of
+MAX_I = 6 #the number of values to take a running average of
 datastring = pdoa_port.readline().decode('UTF-8') #read until '\n' from port, decode to string
 if datastring:
     dataJSON = json.loads(datastring[datastring.index('{'):]) #remove JSxxxx prefix to make it readable by loads
@@ -25,4 +25,4 @@ while True:
         running_Ycm[i] = dataJSON["TWR"]["Ycm"]
         running_P[i] = dataJSON["TWR"]["P"]
         i = (i+1)%MAX_I #increment i and wraparound
-        print("5-average of D is {} cm, X is {} cm, Y is {} cm, P is {} deg".format(running_D.mean(),running_Xcm.mean(),running_Ycm.mean(),running_P.mean()))
+        print("{}-average of D is {:.2f} cm, X is {:.2f} cm, Y is {:.2f} cm, P is {:.3f} deg".format(MAX_I, running_D.mean(),running_Xcm.mean(),running_Ycm.mean(),running_P.mean()))

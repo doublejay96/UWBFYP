@@ -9,7 +9,7 @@ from mavsdk.offboard import (OffboardError, VelocityBodyYawspeed)
 
 ##Variables to be set
 pdoa_port = serial.Serial('/dev/ttyACM0', timeout=1) #open the serial port (for PDoA)
-MAX_I = 5 #the number of values to take a running average of
+MAX_I = 6 #the number of values to take a running average of
 TARGET_X = 0 #the X-distance in cm to maintain the tag position at
 TARGET_Y = 50 #the Y-distance in cm to maintain the tag position at
 VELOCITY_DIVIDER = 100 #distance divided by this to set target velocity. Distance in cm, velocity in m/s. Fine-tune?
