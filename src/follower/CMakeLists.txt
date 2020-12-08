@@ -50,6 +50,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   uwb_node_reading.msg
+  filtered_reading.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -135,6 +136,8 @@ include_directories(
 # add_executable(${PROJECT_NAME}_node src/follower_node.cpp)
 add_executable(uwb_node_reader src/uwb_node_reader.cpp)
 target_link_libraries(uwb_node_reader ${catkin_LIBRARIES})
+add_executable(ma_filter src/ma_filter.cpp)
+target_link_libraries(ma_filter ${catkin_LIBRARIES})
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the

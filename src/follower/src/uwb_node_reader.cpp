@@ -1,3 +1,4 @@
+//This ROS node reads the UWB node through the serial port, and publishes the important information (D,P,Xcm,Ycm) to a ROS topic '/uwb_node_reading'.
 #include "ros/ros.h" //all headers necessary for ROS functions
 #include "follower/uwb_node_reading.h"//defines the uwb_node_reading object, in 'follower' namespace 
 #include <string> //strstr find substring function

@@ -7,4 +7,8 @@ This repository is a catkin workspace containing two ROS packages, 'leader' and 
 Requires ROS-noetic, version 1.15.9. After git cloning, run 'catkin\_make' in this directory to build. Then run 'source ./devel/setup.bash' to ensure the packages are properly found (you will have to run this for each separate terminal you want to run ROS in, consider adding to .bashrc).
 
 ## Running
-Run 'roscore' on one terminal to create the core, run 'rosrun follower uwb\_node\_reader' on another terminal to create the corresponding node, run 'rostopic echo \uwb\_node\_reading' on another terminal to monitor the published messages.
+Run 'roscore' on one terminal to create the core, then run the following in separate terminals:
+'rosrun follower uwb\_node\_reader'
+'rosrun follower ma\_filter'
+
+Additionally, run 'rostopic list' and 'rostopic echo \<topic\>' to monitor what is being published.
