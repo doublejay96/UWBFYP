@@ -31,7 +31,7 @@ class maFilter {
             buffer_pos = (buffer_pos+1)%6;//increment the buffer position to the next one (circular)
             //ROS_INFO("Buffer position is %d", buffer_pos);
             //ROS_INFO("Averages are D: %f, P: %f, Xcm: %f, Ycm: %f", averages[0], averages[1], averages[2], averages[3]);
-            ROS_INFO("PDoA distance: %d, phase: %d, Xcm: %d, Ycm: %d", message.D, message.P, message.Xcm, message.Ycm);//display extracted frame data to rosconsole for debugging
+            //ROS_INFO("PDoA distance: %d, phase: %d, Xcm: %d, Ycm: %d", message.D, message.P, message.Xcm, message.Ycm);//display extracted frame data to rosconsole for debugging
         }
 };
 
