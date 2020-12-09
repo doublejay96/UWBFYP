@@ -1,0 +1,68 @@
+#Installation of ROS Noetic/Gazebo11#
+
+#Installation of Gazebo11#
+sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
+
+cat /etc/apt/sources.list.d/gazebo-stable.list
+#deb http://packages.osrfoundation.org/gazebo/ubuntu-stable bionic main
+
+wget https://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
+sudo apt-get update
+sudo apt-get install gazebo11 libgazebo11-dev
+
+#Installation of ROS Noetic#
+sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
+
+sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
+
+sudo apt update
+sudo apt install ros-noetic-desktop-full
+echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
+source ~/.bashrc
+
+#Installation of gazebo_ros_pkgs (ROS 1)#
+mkdir -p ~/catkin_ws/src
+cd ~/catkin_ws/src
+catkin_init_workspace
+cd ~/catkin_ws
+catkin_make
+
+echo "source ~/catkin_ws/devel/setup.bash" >> ~/.bashrc
+
+#Ensure git is installed, else execute following:#
+sudo apt-get install git
+
+cd ~/catkin_ws/src
+git clone https://github.com/ros-simulation/gazebo_ros_pkgs.git -b noetic-devel
+
+#For ROS Noetic#
+sudo apt-get install python3-rosdep
+#Called only once after installation:#
+sudo rosdep init
+
+rosdep update
+rosdep check --from-paths . --ignore-src --rosdistro noetic
+
+#Build the gazebo_ros_pkgs#
+cd ~/catkin_ws/
+catkin_make
+
+#Extra Procedures before multi-vehicle simulation#
+sudo apt-get install ros-noetic-mavros ros-noetic-mavros-extras
+cd ~/
+wget https://raw.githubusercontent.com/mavlink/mavros/master/mavros/scripts/install_geographiclib_datasets.sh
+chmod +x ./install_geographiclib_datasets.sh
+./install_geographiclib_datasets.sh
+#GeographicLib requires certain datasets (mainly the geoid dataset) so to fulfill certain calculations
+
+#Multi-Vehicle Sim#
+git clone https://github.com/PX4/PX4-Autopilot.git --recursive
+cd PX4-Autopilot/
+git submodule update --init --recursive
+DONT_RUN=1 make px4_sitl_default gazebo
+
+source Tools/setup_gazebo.bash $(pwd) $(pwd)/build/px4_sitl_default
+export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:$(pwd):$(pwd)/Tools/sitl_gazebo
+
+roslaunch px4 multi_uav_mavros_sitl.launch
+
