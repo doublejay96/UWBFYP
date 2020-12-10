@@ -1,3 +1,4 @@
+//This node implements a moving-average filter to smooth out the noise from the UWB readings. It subscribes to '/uwb_node_readings' topic and publishes the filtered readings to the '/filtered_reading' topic
 #include "ros/ros.h" //all headers necessary for ROS functions
 #include "follower/uwb_node_reading.h"//defines the uwb_node_reading object, in 'follower' namespace 
 #include "follower/filtered_reading.h"//defines the filtered_reading object

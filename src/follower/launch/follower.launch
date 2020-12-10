@@ -1,0 +1,6 @@
+<launch>
+    <node pkg="follower" type="uwb_node_reader" name="uwb_node_reader"/>
+    <node pkg="follower" type="ma_filter" name="ma_filter"/>
+    <node pkg="follower" type="mavros_offboard" name="mavros_offboard"/>
+    <node pkg="mavros" type="mavros_node" name="mavros_node"/>
+</launch>

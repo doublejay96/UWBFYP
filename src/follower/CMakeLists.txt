@@ -11,8 +11,10 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   message_generation
+  mavros
   geometry_msgs
   mavros_msgs
+  gazebo_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -144,6 +146,8 @@ add_executable(mavros_offboard src/mavros_offboard.cpp)
 target_link_libraries(mavros_offboard ${catkin_LIBRARIES})
 add_executable(mavros_example src/mavros_example.cpp)
 target_link_libraries(mavros_example ${catkin_LIBRARIES})
+add_executable(uwb_simulator src/uwb_simulator.cpp)
+target_link_libraries(uwb_simulator ${catkin_LIBRARIES})
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
