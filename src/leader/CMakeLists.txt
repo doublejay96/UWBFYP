@@ -10,6 +10,9 @@ project(leader)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
+  mavros
+  mavros_msgs
+  gazebo_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -104,7 +107,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES leader
-#  CATKIN_DEPENDS roscpp rospy
+  CATKIN_DEPENDS roscpp rospy message_runtime
 #  DEPENDS system_lib
 )
 
@@ -133,6 +136,8 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/leader_node.cpp)
+add_executable(mavros_direct_offboard src/mavros_direct_offboard.cpp)
+target_link_libraries(mavros_direct_offboard ${catkin_LIBRARIES})
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the

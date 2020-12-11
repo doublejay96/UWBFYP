@@ -55,6 +55,7 @@ add_message_files(
   FILES
   uwb_node_reading.msg
   filtered_reading.msg
+  flight_status.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -144,10 +145,14 @@ add_executable(ma_filter src/ma_filter.cpp)
 target_link_libraries(ma_filter ${catkin_LIBRARIES})
 add_executable(mavros_offboard src/mavros_offboard.cpp)
 target_link_libraries(mavros_offboard ${catkin_LIBRARIES})
+add_executable(mavros_takeoff src/mavros_takeoff.cpp)
+target_link_libraries(mavros_takeoff ${catkin_LIBRARIES})
+
 add_executable(mavros_example src/mavros_example.cpp)
 target_link_libraries(mavros_example ${catkin_LIBRARIES})
 add_executable(uwb_simulator src/uwb_simulator.cpp)
 target_link_libraries(uwb_simulator ${catkin_LIBRARIES})
+
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
