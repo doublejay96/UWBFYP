@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- This combination of nodes is needed for control of the leader in actual flight. -->
+    <node pkg="leader" type="mavros_direct_offboard" name="mavros_direct_offboard" output="screen"/>
+    <node pkg="mavros" type="mavros_node" name="mavros_node" output="screen"/>
+</launch>

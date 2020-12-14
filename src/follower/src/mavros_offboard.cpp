@@ -11,7 +11,7 @@ mavros_msgs::State current_state;//global var to monitor the current state (of t
 uint8_t flightStage = 0;//the current flight status, to activate the sending of offboard commands
 float Xcm, Ycm;//LAST KNOWN position of UWB tag relative to node (in cm, F-L reference axes)
 float X_offset = -100, Y_offset = 0;//distance to keep the leader at relative to folllower (in cm, F-L reference axes)
-const float VELOCITY_DIVIDER = 10;//distance divided by this gives velocity to set. Cover the distance in this amount of seconds?
+const float VELOCITY_DIVIDER = 2;//distance divided by this gives velocity to set. Cover the distance in this amount of seconds?
 
 //callbacks update the relevant global var when receiving on topics "mavros/state", "filtered_reading", "flight_status"
 void state_cb(const mavros_msgs::State::ConstPtr& msg) {
