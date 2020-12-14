@@ -4,6 +4,7 @@
 #include <mavros_msgs/SetMode.h>
 #include <mavros_msgs/State.h>
 #include <mavros_msgs/PositionTarget.h>
+#include <geometry_msgs/PoseStamped.h>
 
 mavros_msgs::State current_state;
 void state_cb(const mavros_msgs::State::ConstPtr& msg) {
@@ -15,6 +16,7 @@ int main(int argc, char** argv) {
     ros::NodeHandle nh; //construct the first NodeHandle to fully initialise, handle contains communication fns
     ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>("mavros/state", 10, state_cb);
     ros::Publisher target_pos_pub = nh.advertise<mavros_msgs::PositionTarget>("mavros/setpoint_raw/local", 10);
+    ros::Publisher local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10);
     ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>("mavros/cmd/arming");
     ros::ServiceClient set_mode_client = nh.serviceClient<mavros_msgs::SetMode>("mavros/set_mode");
     ros::Rate rate(10.0); //setpoint publishing rate MUST be faster than 2 Hz
@@ -22,12 +24,17 @@ int main(int argc, char** argv) {
         ros::spinOnce(); //call any callbacks waiting
         rate.sleep();
     }
+    geometry_msgs::PoseStamped pose;
+    pose.pose.position.x = 0;
+    pose.pose.position.y = 0;
+    pose.pose.position.z = 1;
     mavros_msgs::PositionTarget positionTarget;
     positionTarget.coordinate_frame = 8; //FRAME_BODY_NED
-    positionTarget.type_mask = 0b110111111000;//set positions only, 3576
+    positionTarget.type_mask = 0b111111111000;//set positions only, 3576
     //positionTarget.type_mask = 0b110111000111;//set velocities only, 3527
-    positionTarget.position.z = 2;
+    positionTarget.position.z = 1;
     for (int i = 10; ros::ok() && i > 0; --i) { //send a few setpoints before starting
+	//local_pos_pub.publish(pose);
 	target_pos_pub.publish(positionTarget);
         ros::spinOnce();
         rate.sleep();
@@ -52,8 +59,9 @@ int main(int argc, char** argv) {
 	    }
         }
 	//STOP publishing, we will do it from command line
-	//target_pos_pub.publish(positionTarget);//publish the latest position_Target
-        ros::spinOnce();
+	target_pos_pub.publish(positionTarget);//publish the latest position_Target
+        //local_pos_pub.publish(pose);
+	ros::spinOnce();
         rate.sleep();
     }
     return 0;
