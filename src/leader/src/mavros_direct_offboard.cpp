@@ -1,4 +1,4 @@
-//This is an SIMULATION ONLY node to demonstrate sending offboard commands to the PX4 in Gazebo to control the leader's flight.
+//This is an ACTUAL FLIGHT ONLY node to demonstrate sending offboard commands to the PX4 in Gazebo to control the leader's flight.
 #include "ros/ros.h" //all headers necessary for ROS functions
 #include <mavros_msgs/CommandBool.h>//following header files define the ROS message objects in respective namespaces
 #include <mavros_msgs/SetMode.h>
@@ -10,10 +10,6 @@
 mavros_msgs::State current_state;
 void state_cb(const mavros_msgs::State::ConstPtr& msg) {
 	current_state = *msg;
-}
-geometry_msgs::PoseStamped current_pose;
-void position_cb(const geometry_msgs::PoseStamped msg) {
-	current_pose = msg;
 }
 
 int main(int argc, char** argv) {
