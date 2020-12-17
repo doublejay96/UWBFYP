@@ -1,8 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-    <!-- This combination of nodes is needed for control of the leader in actual flight. -->
-    <node pkg="leader" type="mavros_direct_offboard" name="mavros_direct_offboard" output="screen"/>
-    <node pkg="leader" type="feedback_fake_vicon" name="feedback_fake_vicon" output="screen"/>	    
+    <!-- These nodes are run on the leader connected to PX4 for various data-gathering purposes. Not for actual or simulated flight. -->
     <node pkg="leader" type="record_barometer" name="record_barometer" output="screen"/>	    
     <!-- MAVROS configs -->
     <arg name="fcu_url" default="/dev/ttyUSB0:921600"/>

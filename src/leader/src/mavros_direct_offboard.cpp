@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
 	attitudeTarget.orientation.z = 0;
 	attitudeTarget.orientation.w = 0;
 	attitudeTarget.thrust = 0.5;//set thrust to 0.5 of maximum
-	for (int i = 10; ros::ok() && i > 0; --i) { //send a few setpoints before starting
+	for (int i = 150; ros::ok() && i > 0; --i) { //send a few setpoints before starting
 		//local_pos_pub.publish(pose);
 		target_pos_pub.publish(positionTarget);
 		//target_att_pub.publish(attitudeTarget);
