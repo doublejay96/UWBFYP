@@ -4,13 +4,16 @@
 #include <geometry_msgs/PoseStamped.h>
 
 geometry_msgs::PoseStamped current_pose;
+double z_offset_sum = 0;
 double z_offset = 0;
-bool isFirst = true;
-bool isFirst2 = true;
+int count_offset_samples = 0;
 void position_cb(const geometry_msgs::PoseStamped msg) {
-	if (isFirst) {
-		z_offset = msg.pose.position.z;
-		isFirst = false;
+	if (count_offset_samples < 5) {
+		z_offset_sum += msg.pose.position.z;
+		count_offset_samples++;
+	} else if (count_offset_samples == 5) {
+		z_offset = z_offset_sum / 5;
+		count_offset_samples++;
 	}
 	current_pose.pose.position.x = 0;
 	current_pose.pose.position.y = 0;
@@ -30,9 +33,8 @@ int main(int argc, char** argv) {
 	ros::Publisher vision_pos_pub = nh.advertise<geometry_msgs::PoseStamped>("mavros/vision_pose/pose", 100);
 	ros::Rate rate(20.0); //messages to be streamed at 30-50 Hz
 	while (ros::ok()) {
-		if (isFirst2 && !isFirst) {
+		if (count_offset_samples >= 5) {
 			nh.setParam("/z_offset_barometer", z_offset);
-			isFirst2 = false;
 		}
 		//PUBLISH current known pose back into vision position estimate
 		current_pose.header.stamp = ros::Time::now();

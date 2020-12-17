@@ -4,7 +4,7 @@
 #include <gazebo_msgs/GetModelState.h>
 #include <mavros_msgs/PositionTarget.h>
 #include "follower/uwb_node_reading.h"//defines the uwb_node_reading object, in 'follower' namespace
-
+#include <math.h>//math functions for calculating distance, adding noise
 
 //Function to update known relative positions at rate of 10 Hz
 //iris0 (leader) at index 2, followers at subsequent indices
@@ -12,7 +12,7 @@
 //convert from given metres to publishing in cm
 
 int main(int argc, char** argv) {
-	int Xcm_sim, Ycm_sim;//The current known relative position of the leader to the follower (in cm)
+	double Xcm_sim, Ycm_sim;//The current known relative position of the leader to the follower (in cm)
 	ros::init(argc, argv, "uwb_simulator");//initialise the node and name it
 	ros::NodeHandle nh; //construct the first NodeHandle to fully initialise, handle contains communication fns
 	ros::ServiceClient model_state_client = nh.serviceClient<gazebo_msgs::GetModelState>("gazebo/get_model_state");
@@ -26,12 +26,11 @@ int main(int argc, char** argv) {
 	message.P = 0;
 	while (ros::ok()) {
 		if (model_state_client.call(leader_relative_state)) {
-			//Xcm_sim = leader_relative_state.response.pose.position.y * 100;//the relative position (float64 cast to int)
-			//Ycm_sim = -leader_relative_state.response.pose.position.x * 100;
-			Xcm_sim = leader_relative_state.response.pose.position.x * 100;//the relative position (float64 cast to int)
+			Xcm_sim = leader_relative_state.response.pose.position.x * 100;//get relative position (convert to cm)
 			Ycm_sim = leader_relative_state.response.pose.position.y * 100;
-			message.Xcm = Xcm_sim;
-			message.Ycm = Ycm_sim;
+			message.Xcm = (int) Xcm_sim;//cast to int, put in message
+			message.Ycm = (int) Ycm_sim;
+			message.D = (int) sqrt(pow(Xcm_sim, 2) + pow(Ycm_sim,2));//calculate distance from doubles
 			reading_pub.publish(message);
 			//ROS_INFO("UWB readings are Xcm: %d, Ycm: %d", Xcm_sim, Ycm_sim);
 		} else {
