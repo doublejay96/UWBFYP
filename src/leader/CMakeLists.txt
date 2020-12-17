@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   mavros
+  mavros_extras
   mavros_msgs
   gazebo_msgs
 )
@@ -138,6 +139,8 @@ include_directories(
 # add_executable(${PROJECT_NAME}_node src/leader_node.cpp)
 add_executable(mavros_direct_offboard src/mavros_direct_offboard.cpp)
 target_link_libraries(mavros_direct_offboard ${catkin_LIBRARIES})
+add_executable(feedback_fake_vicon src/feedback_fake_vicon.cpp)
+target_link_libraries(feedback_fake_vicon ${catkin_LIBRARIES})
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the

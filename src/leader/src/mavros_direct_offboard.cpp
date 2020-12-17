@@ -11,6 +11,10 @@ mavros_msgs::State current_state;
 void state_cb(const mavros_msgs::State::ConstPtr& msg) {
 	current_state = *msg;
 }
+geometry_msgs::PoseStamped current_pose;
+void position_cb(const geometry_msgs::PoseStamped msg) {
+	current_pose = msg;
+}
 
 int main(int argc, char** argv) {
 	ros::init(argc, argv, "mavros_direct_offboard");//initialise the node, name it
@@ -35,7 +39,8 @@ int main(int argc, char** argv) {
 	positionTarget.coordinate_frame = 8; //FRAME_BODY_NED
 	positionTarget.type_mask = 0b111111111000;//set positions only, 3576
 	//positionTarget.type_mask = 0b110111000111;//set velocities only, 3527
-	positionTarget.position.z = 1;
+	positionTarget.position.z = 0.5;
+	double z_offset;
 	//OFFBOARD BY SETPOINT_RAW/ATTITUDE
 	ros::Publisher target_att_pub = nh.advertise<mavros_msgs::AttitudeTarget>("mavros/setpoint_raw/attitude", 10);
 	mavros_msgs::AttitudeTarget attitudeTarget;
@@ -47,8 +52,8 @@ int main(int argc, char** argv) {
 	attitudeTarget.thrust = 0.5;//set thrust to 0.5 of maximum
 	for (int i = 10; ros::ok() && i > 0; --i) { //send a few setpoints before starting
 		//local_pos_pub.publish(pose);
-		//target_pos_pub.publish(positionTarget);
-		target_att_pub.publish(attitudeTarget);
+		target_pos_pub.publish(positionTarget);
+		//target_att_pub.publish(attitudeTarget);
 		ros::spinOnce();
 		rate.sleep();
 	}
@@ -71,10 +76,14 @@ int main(int argc, char** argv) {
 				last_request = ros::Time::now();
 			}
 		}
+		if (nh.getParam("/z_offset_barometer", z_offset)) {
+			//ROS_INFO("Set position target with offset %f", z_offset);
+			positionTarget.position.z = 0.5 + z_offset;
+		}
 		//STOP publishing, we will do it from command line
 		//local_pos_pub.publish(pose);
 		target_pos_pub.publish(positionTarget);//publish the latest position_Target
-		target_att_pub.publish(attitudeTarget);
+		//target_att_pub.publish(attitudeTarget);
 		ros::spinOnce();
 		rate.sleep();
 	}
