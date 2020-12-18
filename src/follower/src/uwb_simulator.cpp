@@ -1,5 +1,5 @@
 //This node is meant to simulate the UWB node readings. It does this by getting the model state from Gazebo and calculating the position of the leader's tag relative to the follower node, and publishing to the '/uwb_node_reading' topic, hence replacing the 'uwb_node_reader' node entirely.
-//TO DO: implement D, P readings, account for orientation of follower, add realistic noise based on experimental data to make it not perfectly accurate
+//TO DO: implement P readings, add realistic noise based on experimental data to make it not perfectly accurate
 #include "ros/ros.h" //all headers necessary for ROS functions
 #include <gazebo_msgs/GetModelState.h>
 #include <mavros_msgs/PositionTarget.h>

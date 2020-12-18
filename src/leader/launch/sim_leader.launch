@@ -2,5 +2,7 @@
 <launch>
     <!-- This combination of nodes is needed for the simulation of the leader.-->
     <!-- The only node is mavros_direct_offboard to switch to offboard mode and take off.-->
+	<arg name="waypoints" default="true"/>
+	<param name="waypoints" type="bool" value="$(arg waypoints)"/>
     <node pkg="leader" type="mavros_sim_offboard" name="mavros_sim_offboard" output="screen"/>
 </launch>

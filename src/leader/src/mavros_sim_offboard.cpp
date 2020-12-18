@@ -23,26 +23,32 @@ struct waypoint {
 int main(int argc, char** argv) {
 	ros::init(argc, argv, "mavros_direct_offboard");//initialise the node, name it
 	ros::NodeHandle nh; //construct the first NodeHandle to fully initialise, handle contains communication fns
+	bool followingWaypoints = true;
+	nh.param("waypoints", followingWaypoints, true);
+	if (nh.getParam("waypoints", followingWaypoints)) ROS_INFO("Reading from waypoints file");
 	ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>("mavros/state", 10, state_cb);
 	ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>("mavros/cmd/arming");
 	ros::ServiceClient set_mode_client = nh.serviceClient<mavros_msgs::SetMode>("mavros/set_mode");
 	ros::Rate rate(10.0); //setpoint publishing rate MUST be faster than 2 Hz
 	std::vector<waypoint> waypoints;//x, y, z, time for each waypoint
 	std::ifstream waypoints_file;
-	waypoints_file.open("../UWBFYP/data/waypoints.txt");
-	char line[256];
-	while (waypoints_file.getline(line, 256)) {
-		char* p;
-		waypoint Waypoint;
-		Waypoint.x = atof(line);
-		p = strstr(line, ",") + 1;//delimiter
-		Waypoint.y = atof(p);
-		p = strstr(p, ",") + 1;
-		Waypoint.z = atof(p);
-		p = strstr(p, ",") + 1;
-		Waypoint.duration = atof(p);
-		waypoints.push_back(Waypoint);
-		ROS_INFO("Read waypoint: (%.3f, %.3f, %.3f), duration %.3f seconds", Waypoint.x, Waypoint.y, Waypoint.z, Waypoint.duration);
+	if (followingWaypoints) {
+		waypoints_file.open("../UWBFYP/data/waypoints.txt");
+		char line[256];
+		while (waypoints_file.getline(line, 256)) {
+			char* p;
+			waypoint Waypoint;
+			Waypoint.x = atof(line);
+			p = strstr(line, ",") + 1;//next char after delimiter
+			Waypoint.y = atof(p);
+			p = strstr(p, ",") + 1;
+			Waypoint.z = atof(p);
+			p = strstr(p, ",") + 1;
+			Waypoint.duration = atof(p);
+			waypoints.push_back(Waypoint);
+			ROS_INFO("Read waypoint: (%.3f, %.3f, %.3f), duration %.3f seconds", Waypoint.x, Waypoint.y, Waypoint.z, Waypoint.duration);
+		}
+		waypoints_file.close();
 	}
 	while (ros::ok() && !current_state.connected) {
 		ros::spinOnce(); //call any callbacks waiting
@@ -84,10 +90,13 @@ int main(int argc, char** argv) {
 	ros::Time last_request = ros::Time::now();
 	ros::Time last_waypoint_time = ros::Time::now();//time at which last waypoint was 'reached'
 	std::vector<waypoint>::iterator currentWaypoint = waypoints.begin();//iterator, first waypoint
-	positionTarget.position.x = currentWaypoint->x;
-	positionTarget.position.y = currentWaypoint->y;
-	positionTarget.position.z = currentWaypoint->z;
-	ros::Duration currentWaypointDuration = ros::Duration(currentWaypoint->duration);//ros::Duration variable saves on recalculation
+	ros::Duration currentWaypointDuration = ros::Duration(0.0);//ros::Duration variable saves on recalculation
+	if (followingWaypoints) {
+		positionTarget.position.x = currentWaypoint->x;
+		positionTarget.position.y = currentWaypoint->y;
+		positionTarget.position.z = currentWaypoint->z;
+		currentWaypointDuration = ros::Duration(currentWaypoint->duration);
+	}
 	while (ros::ok()) {//nested if statements :((
 		if (current_state.mode != "OFFBOARD" && (ros::Time::now() - last_request > ros::Duration(5.0))) { //if not in OFFBOARD mode already, 5s since last request
 			if (set_mode_client.call(offb_set_mode) && offb_set_mode.response.mode_sent) {//if setting to offboard mode is successful
@@ -98,12 +107,14 @@ int main(int argc, char** argv) {
 			if (!current_state.armed && (ros::Time::now() - last_request > ros::Duration(5.0))) {//if not armed, 5s since last request
 				if (arming_client.call(arm_cmd) && arm_cmd.response.success) {//if arming call succeeded
 					ROS_INFO("Vehicle armed");
-					ROS_INFO("Moving to first waypoint: (%.3f, %.3f, %.3f), duration %.3f seconds", currentWaypoint->x, currentWaypoint->y, currentWaypoint->z, currentWaypoint->duration);
-					last_waypoint_time = ros::Time::now();//start time of first waypoint at time of arming
+					if (followingWaypoints) {
+						ROS_INFO("Moving to first waypoint: (%.3f, %.3f, %.3f), duration %.3f seconds", currentWaypoint->x, currentWaypoint->y, currentWaypoint->z, currentWaypoint->duration);
+						last_waypoint_time = ros::Time::now();//start time of first waypoint at time of arming
+					}
 				}
 				last_request = ros::Time::now();
-			} else if (current_state.armed && ros::Time::now() - last_waypoint_time > currentWaypointDuration) {//if armed, and time to go to next waypoint
-				if (currentWaypoint < --waypoints.end()) {
+			} else if (current_state.armed && followingWaypoints) {//if armed, and time to go to next waypoint
+				if (ros::Time::now() - last_waypoint_time > currentWaypointDuration && currentWaypoint < --waypoints.end()) {
 					currentWaypoint++;//if not yet at the end, increment the iterator to point to next waypoint
 					positionTarget.position.x = currentWaypoint->x;//update setpoint coordinates to publish
 					positionTarget.position.y = currentWaypoint->y;
@@ -115,9 +126,11 @@ int main(int argc, char** argv) {
 			}
 		}
 		//STOP publishing, we will do it from command line
-		//local_pos_pub.publish(pose);
-		target_pos_pub.publish(positionTarget);//publish the latest positionTarget
-		//target_att_pub.publish(attitudeTarget);
+		if (followingWaypoints) {
+			//local_pos_pub.publish(pose);
+			target_pos_pub.publish(positionTarget);//publish the latest positionTarget
+			//target_att_pub.publish(attitudeTarget);
+		}
 		ros::spinOnce();
 		rate.sleep();
 	}
