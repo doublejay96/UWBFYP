@@ -51,7 +51,8 @@
         <arg name="fcu_url" value="$(arg fcu_url)"/>
         <arg name="respawn_mavros" value="$(arg respawn_mavros)"/>
     </include>
-    <arg name="waypoints" default="true"/>
+	<rosparam command="load" file="param/sim_params.yaml"/>
+    <!-- arg name="waypoints" default="true"/-->
 	<include file="$(find leader)/launch/sim_leader.launch">
 		<arg name="waypoints" value="$(arg waypoints)"/>
 	</include>

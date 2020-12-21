@@ -19,7 +19,8 @@ int main(int argc, char** argv) {
 	ros::Publisher reading_pub = nh.advertise<follower::uwb_node_reading>("follower1/uwb_node_reading", 1000);
 	ros::Rate rate(10);//same as the actual uwb_node_reader, 10 Hz
 	gazebo_msgs::GetModelState leader_relative_state;
-	leader_relative_state.request.model_name = "iris0";//get the state of iris0, the leader
+	//leader_relative_state.request.model_name = "iris0";//get the state of iris0, the leader
+	leader_relative_state.request.model_name = "iris1";//get the state of iris1, the follower
 	leader_relative_state.request.relative_entity_name = "iris1";//relative to iris1, the follower
 	follower::uwb_node_reading message;//create the message to publish
 	message.D = 0;//dummy info

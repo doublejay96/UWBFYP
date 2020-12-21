@@ -1,4 +1,4 @@
-//This ROS node reads the filtered UWB readings, converts that into appropriate offboard commands, and sends it to the mavros_node node by publishing to 'mavros/setpoint_raw/local' topic. It is always calculating, but only starts sending offboard commands when the 'flight_status' topic lets it know that the previous mavros_takeoff node is done.
+//This ROS node reads the filtered UWB readings, converts that into appropriate offboard commands in velocity (using just proportional control), and sends it to the mavros_node node by publishing to 'mavros/setpoint_raw/local' topic. It is always calculating, but only starts sending offboard commands when the 'flight_status' topic lets it know that the previous mavros_takeoff node is done.
 #include "ros/ros.h" //all headers necessary for ROS functions
 #include <mavros_msgs/CommandBool.h>//following header files define the ROS message objects in respective namespaces
 #include <mavros_msgs/SetMode.h>
@@ -10,8 +10,8 @@
 mavros_msgs::State current_state;//global var to monitor the current state (of the connection)
 uint8_t flightStage = 0;//the current flight status, to activate the sending of offboard commands
 float Xcm, Ycm;//LAST KNOWN position of UWB tag relative to node (in cm, F-L reference axes)
-float X_offset = 100, Y_offset = 0;//distance to keep the leader at relative to folllower (in cm, F-L reference axes)
-const float VELOCITY_DIVIDER = 2;//distance divided by this gives velocity to set. Cover the distance in this amount of seconds?
+float X_offset = 0, Y_offset = 100;//distance to keep the leader at relative to folllower (in cm, F-L reference axes)
+const float VELOCITY_MULTIPLIER = 1;//distance divided by this gives velocity to set. Cover the distance in this amount of seconds?
 
 //callbacks update the relevant global var when receiving on topics "mavros/state", "filtered_reading", "flight_status"
 void state_cb(const mavros_msgs::State::ConstPtr& msg) {
@@ -42,8 +42,8 @@ int main(int argc, char** argv) {
 	//positionTarget.type_mask = 0b110111111000;//set positions only, 3576
     positionTarget.type_mask = 0b110111000111;//set velocities only, 3527    
     while (ros::ok() && current_state.connected && flightStage == 2) {
-		positionTarget.velocity.x = ((Xcm - X_offset)/100) / VELOCITY_DIVIDER; //get the x-distance to move (convert from cm to m)
-    	positionTarget.velocity.y = ((Ycm - Y_offset)/100) / VELOCITY_DIVIDER; //get the y-distance to move
+		positionTarget.velocity.x = ((Xcm - X_offset)/100) * VELOCITY_MULTIPLIER; //get the x-distance to move (convert from cm to m)
+    	positionTarget.velocity.y = ((Ycm - Y_offset)/100) * VELOCITY_MULTIPLIER; //get the y-distance to move
 		target_pos_pub.publish(positionTarget);
 		ros::spinOnce(); //call any callbacks waiting
 		rate.sleep();
