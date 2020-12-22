@@ -17,7 +17,6 @@ mavros_msgs::State current_state;
 void state_cb(const mavros_msgs::State::ConstPtr& msg) {
 	current_state = *msg;
 }
-std::ofstream output_file;
 struct waypoint {
 	double x, y, z, duration;
 };
@@ -26,7 +25,7 @@ int main(int argc, char** argv) {
 	ros::init(argc, argv, "mavros_direct_offboard");//initialise the node, name it
 	ros::NodeHandle nh; //construct the first NodeHandle to fully initialise, handle contains communication fns
 	bool followingWaypoints = true;
-	nh.param("waypoints", followingWaypoints, true);
+	nh.param("waypoints", followingWaypoints, true);//if parameter not loaded, default to TRUE, follow waypoints
 	if (nh.getParam("waypoints", followingWaypoints)) ROS_INFO("Reading from waypoints file");
 	ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>("mavros/state", 10, state_cb);
 	ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>("mavros/cmd/arming");
@@ -90,6 +89,7 @@ int main(int argc, char** argv) {
 	mavros_msgs::CommandBool arm_cmd;
 	arm_cmd.request.value = true;
 	ros::Time last_request = ros::Time::now();
+	//WAYPOINT FOLLOWING
 	ros::Time last_waypoint_time = ros::Time::now();//time at which last waypoint was 'reached'
 	std::vector<waypoint>::iterator currentWaypoint = waypoints.begin();//iterator, first waypoint
 	ros::Duration currentWaypointDuration = ros::Duration(0.0);//ros::Duration variable saves on recalculation
@@ -99,10 +99,19 @@ int main(int argc, char** argv) {
 		positionTarget.position.z = currentWaypoint->z;
 		currentWaypointDuration = ros::Duration(currentWaypoint->duration);
 	}
+	//POSITION LOGGING
+	bool log_position = false;
+	std::string log_position_path;
+	std::ofstream output_file;
+	nh.param("log_position", log_position, false);//if parameter not loaded, default to FALSE, don't log position
+	if (log_position) {
+		nh.getParam("log_position_path", log_position_path);
+		ROS_INFO("Position logging enabled for leader, output to %s", log_position_path.c_str());
+		output_file.open(log_position_path.c_str());
+	}
 	ros::ServiceClient model_state_client = nh.serviceClient<gazebo_msgs::GetModelState>("gazebo/get_model_state");
-    gazebo_msgs::GetModelState leader_relative_state;
-    leader_relative_state.request.model_name = "iris";//get the state of iris0, the leader
-	output_file.open("position_logging.csv");
+	gazebo_msgs::GetModelState leader_relative_state;
+	leader_relative_state.request.model_name = "iris";//get the state of iris0, the leader
 	while (ros::ok()) {//nested if statements :((
 		if (current_state.mode != "OFFBOARD" && (ros::Time::now() - last_request > ros::Duration(5.0))) { //if not in OFFBOARD mode already, 5s since last request
 			if (set_mode_client.call(offb_set_mode) && offb_set_mode.response.mode_sent) {//if setting to offboard mode is successful
@@ -131,9 +140,10 @@ int main(int argc, char** argv) {
 				}
 			}
 		}
-        if (model_state_client.call(leader_relative_state)) {
-			ROS_INFO("%f", ros::Time::now().toSec());
-			output_file << ros::Time::now() << ","  << leader_relative_state.response.pose.position.x * 100 << std::endl;//record absolute position (convert to cm)
+		if (log_position) {//log the position every loop regardless of state
+			if (model_state_client.call(leader_relative_state)) {//Note: ros::Time::now output here is the same as shown in the GUI
+				output_file << ros::Time::now() << ","  << leader_relative_state.response.pose.position.x * 100 << std::endl;//record absolute position (convert to cm)
+			}
 		}
 		//STOP publishing, we will do it from command line
 		if (followingWaypoints) {
