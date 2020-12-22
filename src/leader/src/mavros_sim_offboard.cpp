@@ -3,12 +3,12 @@
 #include <mavros_msgs/CommandBool.h>//following header files define the ROS message objects in respective namespaces
 #include <mavros_msgs/SetMode.h>
 #include <mavros_msgs/State.h>
-//#include <gazebo_msgs/GetModelState.h>
+#include <gazebo_msgs/GetModelState.h>
 #include <mavros_msgs/PositionTarget.h>
 #include <mavros_msgs/AttitudeTarget.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <fstream>
-//#include <iostream>
+#include <iostream>
 #include <vector>
 #include <string>
 #include <cstdlib>
@@ -99,10 +99,10 @@ int main(int argc, char** argv) {
 		positionTarget.position.z = currentWaypoint->z;
 		currentWaypointDuration = ros::Duration(currentWaypoint->duration);
 	}
-	//ros::ServiceClient model_state_client = nh.serviceClient<gazebo_msgs::GetModelState>("gazebo/get_model_state");
-    //gazebo_msgs::GetModelState leader_relative_state;
-    //leader_relative_state.request.model_name = "iris";//get the state of iris0, the leader
-	//output_file.open("position_logging.csv");
+	ros::ServiceClient model_state_client = nh.serviceClient<gazebo_msgs::GetModelState>("gazebo/get_model_state");
+    gazebo_msgs::GetModelState leader_relative_state;
+    leader_relative_state.request.model_name = "iris";//get the state of iris0, the leader
+	output_file.open("position_logging.csv");
 	while (ros::ok()) {//nested if statements :((
 		if (current_state.mode != "OFFBOARD" && (ros::Time::now() - last_request > ros::Duration(5.0))) { //if not in OFFBOARD mode already, 5s since last request
 			if (set_mode_client.call(offb_set_mode) && offb_set_mode.response.mode_sent) {//if setting to offboard mode is successful
@@ -131,9 +131,10 @@ int main(int argc, char** argv) {
 				}
 			}
 		}
-        //if (model_state_client.call(leader_relative_state)) {
-		//	output_file << leader_relative_state.response.pose.position.x * 100 << std::endl;//record absolute position (convert to cm)
-		//}
+        if (model_state_client.call(leader_relative_state)) {
+			ROS_INFO("%f", ros::Time::now().toSec());
+			output_file << ros::Time::now() << ","  << leader_relative_state.response.pose.position.x * 100 << std::endl;//record absolute position (convert to cm)
+		}
 		//STOP publishing, we will do it from command line
 		if (followingWaypoints) {
 			//local_pos_pub.publish(pose);

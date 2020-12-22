@@ -3,7 +3,7 @@
     <!-- MAVROS posix SITL environment launch script -->
     <!-- launches MAVROS, PX4 SITL, Gazebo environment, and spawns vehicle -->
     <!-- vehicle pose -->
-    <arg name="x" default="1"/>
+    <arg name="x" default="0"/>
     <arg name="y" default="0"/>
     <arg name="z" default="0"/>
     <arg name="R" default="0"/>
@@ -51,9 +51,7 @@
         <arg name="fcu_url" value="$(arg fcu_url)"/>
         <arg name="respawn_mavros" value="$(arg respawn_mavros)"/>
     </include>
-	<rosparam command="load" file="param/sim_params.yaml"/>
-    <!-- arg name="waypoints" default="true"/-->
-	<include file="$(find leader)/launch/sim_leader.launch">
-		<arg name="waypoints" value="$(arg waypoints)"/>
-	</include>
+	<!-- LOAD LEADER PARAMETER FILES (WITHIN LEADER NAMESPACE) -->
+    <rosparam command="load" file="param/sim_leader_params.yaml"/>
+	<include file="$(find leader)/launch/sim_leader.launch"/>
 </launch>

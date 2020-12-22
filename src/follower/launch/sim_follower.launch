@@ -3,5 +3,5 @@
     <!-- This combination of nodes is needed for the simulation. uwb_node_reader is replaced by uwb_simulator. mavros_node is already run elsewhere in the mavros px4.launch -->
     <node pkg="follower" type="ma_filter" name="ma_filter" output="screen"/>
     <node pkg="follower" type="mavros_takeoff" name="mavros_takeoff" output="screen"/>
-	<node pkg="follower" type="mavros_offboard_simple" name="mavros_offboard_simple" output="screen"/>
+	<node pkg="follower" type="mavros_offboard_PID" name="mavros_offboard_PID" output="screen"/>
 </launch>

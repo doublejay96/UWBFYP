@@ -9,12 +9,11 @@
 #include <fstream>
 #include <iostream>
 
-std::ofstream output_file;
 mavros_msgs::State current_state;//global var to monitor the current state (of the connection)
 uint8_t flightStage = 0;//the current flight status, to activate the sending of offboard commands
 float Xcm, Ycm;//LAST KNOWN position of UWB tag relative to node (in cm, F-L reference axes)(message def is float32s)
-float X_offset = 0, Y_offset = 100;//distance to keep the leader at relative to folllower (in cm, F-L reference axes)
-double Kc = 0.5, Ti = 4, Td = 1.5;//P, I and D gains (placeholder values)
+float X_offset = 0, Y_offset = 0;//distance to keep the leader at relative to folllower (in cm, F-L reference axes)
+double Kp = 0.5, Ki = 0.125, Kd = 0.75;//P, I and D gains (placeholder values)
 const float dt = 0.1;//dt used to differentiate/integrate, reciprocal of 10 Hz update rate from UWB node
 
 //callbacks update the relevant global var when receiving on topics "mavros/state", "filtered_reading", "flight_status"
@@ -54,12 +53,23 @@ int main(int argc, char** argv) {
 	float prev_y_error = 0;
 	double derivative_x = 0;//the calculated derivative (not stored across time),
 	double derivative_y = 0;//but declare here to avoid re-declaring inside loop
-	bool loggingErrors = false;
-	nh.param("loggingErrors", loggingErrors, false);
-	if (loggingErrors) {
-		ROS_INFO("Position error logging enabled for follower, output to error_logging.csv");
-		output_file.open("error_logging.csv");
-		output_file << Kc << " " << Ti << " " << Td << std::endl;
+	bool override_PID_constants = false;//whether to use the Kp, Ki, Kd values in the param file or not
+	nh.param("override_PID_constants", override_PID_constants, false);//if parameter not set, default to FALSE, use the original values specified above
+	if (override_PID_constants) {//if enabled, read the Kp, Ki, Kd values loaded from the parameter file
+		nh.getParam("PID_Kp", Kp);
+		nh.getParam("PID_Ki", Ki);
+		nh.getParam("PID_Kd", Kd);
+		ROS_INFO("Using PID constants from param file, Kp: %f, Ki: %f, Kd: %f", Kp, Ki, Kd);
+	}
+	bool log_errors = false;//whether to log the errors in the PID controller or not
+	std::string log_errors_path;
+	std::ofstream output_file;
+	nh.param("log_errors", log_errors, false);//if parameter not set, default to FALSE, dont log errors
+	if (log_errors) {
+		nh.getParam("log_errors_path", log_errors_path);
+		ROS_INFO("PID position error logging enabled for follower, output to %s", log_errors_path.c_str());
+		output_file.open(log_errors_path.c_str());
+		output_file << Kp << "," << Ki << "," << Kd << std::endl;
 	}
     while (ros::ok() && current_state.connected && flightStage == 2) {//once at flight stage 2, begin PID controller
 		x_error = (Xcm - X_offset)/100;//calculate error in X, convert to m
@@ -70,10 +80,10 @@ int main(int argc, char** argv) {
 		//integral_y += (prev_y_error + y_error) / 2 * dt;
 		derivative_x = (x_error - prev_x_error) / dt;//calculate the derivative from the previous error value
 		derivative_y = (y_error - prev_y_error) / dt;
-		positionTarget.velocity.x = Kc * (x_error + (integral_x / Ti) + (derivative_x * Td));//combine P,I,D terms to get the output control var
-    	positionTarget.velocity.y = Kc * (y_error + (integral_y / Ti) + (derivative_y * Td));
+		positionTarget.velocity.x = (Kp * x_error) + (Ki * integral_x) + (Kd * derivative_x);//combine P,I,D terms to get the output control var
+    	positionTarget.velocity.y = (Kp * y_error) + (Ki * integral_y) + (Kd * derivative_y);
 		target_pos_pub.publish(positionTarget);
-		if (loggingErrors) output_file << x_error << "," << y_error << std::endl;
+		if (log_errors) output_file << x_error << "," << y_error << std::endl;
 		//ROS_INFO("For x, P: %f, I: %Lf, D:%f, output velocity: %f", x_error, integral_x, derivative_x, positionTarget.velocity.x);
 		//ROS_INFO("For y, P: %f, I: %Lf, D:%f, output velocity: %f", y_error, integral_y, derivative_y, positionTarget.velocity.y);
 		prev_x_error = x_error;//store the error value for the next loop
@@ -82,5 +92,6 @@ int main(int argc, char** argv) {
 		rate.sleep();
     }
 	ROS_INFO("Flight stage is now %d, the mavros_offboard node is exiting now", flightStage);
+	output_file.close();
     return 0;
 }

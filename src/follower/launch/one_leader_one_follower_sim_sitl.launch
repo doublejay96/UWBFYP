@@ -19,8 +19,6 @@
         <arg name="verbose" value="$(arg verbose)"/>
         <arg name="paused" value="$(arg paused)"/>
     </include>
-	<!-- Load Parameters file for simulation -->
-	<!-- rosparam command="load" file="param/sim_params.yaml"/-->
     <!-- UAV0, name is iris0, is the leader -->
     <group ns="leader">
         <!-- MAVROS and vehicle configs -->
@@ -28,8 +26,8 @@
         <arg name="fcu_url" default="udp://:14540@localhost:14580"/>
         <!-- PX4 SITL and vehicle spawn -->
         <include file="$(find px4)/launch/single_vehicle_spawn.launch">
-            <arg name="x" value="0"/>
-            <arg name="y" value="0"/>
+            <arg name="x" value="10"/>
+            <arg name="y" value="10"/>
             <arg name="z" value="0"/>
             <arg name="R" value="0"/>
             <arg name="P" value="0"/>
@@ -48,6 +46,8 @@
     	</include>
     	<!-- LAUNCH THE LEADER NODES NEEDED FOR SIMULATION -->
     	<include file="$(find leader)/launch/sim_leader.launch"/>
+		<!-- LOAD LEADER PARAMETER FILES (WITHIN LEADER NAMESPACE) -->
+		<rosparam command="load" file="param/sim_leader_params.yaml"/>
     </group>
     <!-- UAV1 -->
     <group ns="follower1">
@@ -56,8 +56,8 @@
         <arg name="fcu_url" default="udp://:14541@localhost:14581"/>
         <!-- PX4 SITL and vehicle spawn -->
         <include file="$(find px4)/launch/single_vehicle_spawn.launch">
-            <arg name="x" value="0"/>
-            <arg name="y" value="-1"/>
+            <arg name="x" value="3"/>
+            <arg name="y" value="0"/>
             <arg name="z" value="0"/>
             <arg name="R" value="0"/>
             <arg name="P" value="0"/>
@@ -76,6 +76,8 @@
         </include>
     	<!-- LAUNCH THE FOLLOWER NODES NEEDED FOR SIMULATION -->
     	<include file="$(find follower)/launch/sim_follower.launch"/>
+		<!-- LOAD FOLLOWER PARAMETER FILES (WITHIN FOLLOWER NAMESPACE) -->
+		<rosparam command="load" file="param/sim_follower_params.yaml"/>
     </group>
 	<!-- note that the uwb_simulator must be outside of the namespace to access the correct gazebo topics -->
 	<node pkg="follower" type="uwb_simulator" name="simulator" output="screen"/>
