@@ -141,6 +141,7 @@ add_executable(mavros_direct_offboard src/mavros_direct_offboard.cpp)
 target_link_libraries(mavros_direct_offboard ${catkin_LIBRARIES})
 add_executable(record_barometer src/record_barometer.cpp)
 target_link_libraries(record_barometer ${catkin_LIBRARIES})
+
 add_executable(mavros_sim_offboard src/mavros_sim_offboard.cpp)
 target_link_libraries(mavros_sim_offboard ${catkin_LIBRARIES})
 add_executable(feedback_fake_vicon src/feedback_fake_vicon.cpp)

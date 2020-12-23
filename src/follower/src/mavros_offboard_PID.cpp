@@ -12,7 +12,7 @@
 mavros_msgs::State current_state;//global var to monitor the current state (of the connection)
 uint8_t flightStage = 0;//the current flight status, to activate the sending of offboard commands
 float Xcm, Ycm;//LAST KNOWN position of UWB tag relative to node (in cm, F-L reference axes)(message def is float32s)
-float X_offset = 0, Y_offset = 0;//distance to keep the leader at relative to folllower (in cm, F-L reference axes)
+float X_offset = 0, Y_offset = 100;//distance to keep the leader at relative to folllower (in cm, F-L reference axes)
 double Kp = 0.5, Ki = 0.125, Kd = 0.75;//P, I and D gains (placeholder values)
 const float dt = 0.1;//dt used to differentiate/integrate, reciprocal of 10 Hz update rate from UWB node
 
@@ -60,6 +60,11 @@ int main(int argc, char** argv) {
 		nh.getParam("PID_Ki", Ki);
 		nh.getParam("PID_Kd", Kd);
 		ROS_INFO("Using PID constants from param file, Kp: %f, Ki: %f, Kd: %f", Kp, Ki, Kd);
+	} else {//if not enabled, publish your Kp, Ki, Kd values to the parameter server
+		nh.setParam("PID_Kp", Kp);
+		nh.setParam("PID_Ki", Ki);
+		nh.setParam("PID_Kd", Kd);
+		ROS_INFO("Using own PID constants, Kp: %f, Ki: %f, Kd: %f", Kp, Ki, Kd);
 	}
 	bool log_errors = false;//whether to log the errors in the PID controller or not
 	std::string log_errors_path;

@@ -1,0 +1,3 @@
+log_position: true
+log_position_path: "/home/uwbfyp/UWBFYP/logs/position_logging.csv"
+log_until_seconds: 60.0

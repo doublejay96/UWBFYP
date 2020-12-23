@@ -10,9 +10,13 @@ mavros_msgs::State current_state;
 void state_cb(const mavros_msgs::State::ConstPtr& msg) {
 	current_state = *msg;
 }
+uint8_t flightStage = 0;//the current flight status, to activate the sending of offboard commands
+void flightStatusReceivedCallback(const follower::flight_status message) {
+    flightStage = message.stage;//update the known stage we are at
+}
 
 int main(int argc, char** argv) {
-	ros::init(argc, argv, "mavros_direct_offboard");//initialise the node, name it
+	ros::init(argc, argv, "mavros_takeoff_land");//initialise the node, name it
 	ros::NodeHandle nh; //construct the first NodeHandle to fully initialise, handle contains communication fns
 	ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>("mavros/state", 10, state_cb);
 	ros::Publisher target_pos_pub = nh.advertise<mavros_msgs::PositionTarget>("mavros/setpoint_raw/local", 10);
@@ -20,6 +24,7 @@ int main(int argc, char** argv) {
 	ros::ServiceClient set_mode_client = nh.serviceClient<mavros_msgs::SetMode>("mavros/set_mode");
 	ros::Rate rate(10.0); //setpoint publishing rate MUST be faster than 2 Hz
 	ros::Publisher flight_status_pub = nh.advertise<follower::flight_status>("flight_status", 10);
+	ros::Subscriber flight_status_sub = nh.subscribe<follower::flight_status>("flight_status", 10, flightStatusReceivedCallback);
 	follower::flight_status flightStatus;//the flight_status object to be published;
 	flightStatus.stage = 0;//not yet connected to PX4
 	flight_status_pub.publish(flightStatus);//update the flightStatus
@@ -69,6 +74,24 @@ int main(int argc, char** argv) {
 	}
 	flightStatus.stage = 2;//at starting position, go to control logic by mavros_offboard
 	flight_status_pub.publish(flightStatus);//update the flightStatus
-	ROS_INFO("Flight stage is now %d, the mavros_takeoff node is exiting now", flightStatus.stage);
+	ROS_INFO("Flight stage is now %d, mavros_takeoff node handing control to mavros_offboard node", flightStatus.stage);
+	while (ros::ok()) {//flight stage is 2, mavros_offboard node controlling, wait
+		if (flightStage == 3) break;
+		ros::spinOnce();
+		rate.sleep();
+	}
+	mavros_msgs::SetMode autoland_set_mode;
+	autoland_set_mode.request.custom_mode = "AUTO.LAND";
+	while (ros::ok()) {
+		if (current_state.mode != "AUTO.LAND") {
+			if (set_mode_client.call(autoland_set_mode) && autoland_set_mode.response.mode_sent) {//if setting to auto land mode successfull
+				ROS_INFO("Set to automatic landing mode enabled");
+				break;
+			}
+		}
+		ros::spinOnce();
+		rate.sleep();
+	}
+	ROS_INFO("mavros_takeoff_land node is exiting");
 	return 0;
 }

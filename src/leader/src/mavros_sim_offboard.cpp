@@ -22,7 +22,7 @@ struct waypoint {
 };
 
 int main(int argc, char** argv) {
-	ros::init(argc, argv, "mavros_direct_offboard");//initialise the node, name it
+	ros::init(argc, argv, "mavros_sim_offboard");//initialise the node, name it
 	ros::NodeHandle nh; //construct the first NodeHandle to fully initialise, handle contains communication fns
 	bool followingWaypoints = true;
 	nh.param("waypoints", followingWaypoints, true);//if parameter not loaded, default to TRUE, follow waypoints
@@ -99,19 +99,6 @@ int main(int argc, char** argv) {
 		positionTarget.position.z = currentWaypoint->z;
 		currentWaypointDuration = ros::Duration(currentWaypoint->duration);
 	}
-	//POSITION LOGGING
-	bool log_position = false;
-	std::string log_position_path;
-	std::ofstream output_file;
-	nh.param("log_position", log_position, false);//if parameter not loaded, default to FALSE, don't log position
-	if (log_position) {
-		nh.getParam("log_position_path", log_position_path);
-		ROS_INFO("Position logging enabled for leader, output to %s", log_position_path.c_str());
-		output_file.open(log_position_path.c_str());
-	}
-	ros::ServiceClient model_state_client = nh.serviceClient<gazebo_msgs::GetModelState>("gazebo/get_model_state");
-	gazebo_msgs::GetModelState leader_relative_state;
-	leader_relative_state.request.model_name = "iris";//get the state of iris0, the leader
 	while (ros::ok()) {//nested if statements :((
 		if (current_state.mode != "OFFBOARD" && (ros::Time::now() - last_request > ros::Duration(5.0))) { //if not in OFFBOARD mode already, 5s since last request
 			if (set_mode_client.call(offb_set_mode) && offb_set_mode.response.mode_sent) {//if setting to offboard mode is successful
@@ -138,11 +125,6 @@ int main(int argc, char** argv) {
 					last_waypoint_time = ros::Time::now();//reset the time to now
 					ROS_INFO("Moving to next waypoint: (%.3f, %.3f, %.3f), duration %.3f seconds", currentWaypoint->x, currentWaypoint->y, currentWaypoint->z, currentWaypoint->duration);
 				}
-			}
-		}
-		if (log_position) {//log the position every loop regardless of state
-			if (model_state_client.call(leader_relative_state)) {//Note: ros::Time::now output here is the same as shown in the GUI
-				output_file << ros::Time::now() << ","  << leader_relative_state.response.pose.position.x * 100 << std::endl;//record absolute position (convert to cm)
 			}
 		}
 		//STOP publishing, we will do it from command line

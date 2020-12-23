@@ -1,3 +1,2 @@
-waypoints: false
-log_position: true
-log_position_path: "/home/uwbfyp/UWBFYP/logs/position_logging_leader.csv"
+is_leader: true
+waypoints: true

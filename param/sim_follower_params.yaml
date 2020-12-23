@@ -1,6 +1,7 @@
-log_errors: true
+is_leader: false
+log_errors: false
 log_errors_path: "/home/uwbfyp/UWBFYP/logs/error_logging.csv"
 override_PID_constants: true
-PID_Kp: 0.54
-PID_Ki: 0.216
-PID_Kd: 0.3375
+PID_Kp: 0.45
+PID_Ki: 0
+PID_Kd: 0.40

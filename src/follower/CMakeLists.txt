@@ -147,14 +147,15 @@ add_executable(mavros_offboard_simple src/mavros_offboard_simple.cpp)
 target_link_libraries(mavros_offboard_simple ${catkin_LIBRARIES})
 add_executable(mavros_offboard_PID src/mavros_offboard_PID.cpp)
 target_link_libraries(mavros_offboard_PID ${catkin_LIBRARIES})
-add_executable(mavros_takeoff src/mavros_takeoff.cpp)
-target_link_libraries(mavros_takeoff ${catkin_LIBRARIES})
+add_executable(mavros_takeoff_land src/mavros_takeoff_land.cpp)
+target_link_libraries(mavros_takeoff_land ${catkin_LIBRARIES})
+add_executable(position_logger src/position_logger.cpp)
+target_link_libraries(position_logger ${catkin_LIBRARIES})
 
 add_executable(mavros_example src/mavros_example.cpp)
 target_link_libraries(mavros_example ${catkin_LIBRARIES})
 add_executable(uwb_simulator src/uwb_simulator.cpp)
 target_link_libraries(uwb_simulator ${catkin_LIBRARIES})
-
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
