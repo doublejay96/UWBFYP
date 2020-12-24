@@ -35,7 +35,7 @@ int main(int argc, char** argv) {
 	positionTarget.coordinate_frame = 8; //FRAME_BODY_NED
 	positionTarget.type_mask = 0b111111111000;//set positions only, 3576
 	//positionTarget.type_mask = 0b110111000111;//set velocities only, 3527
-	positionTarget.position.z = 0.5;
+	positionTarget.position.z = 1;
 	double z_offset;
 	//OFFBOARD BY SETPOINT_RAW/ATTITUDE
 	ros::Publisher target_att_pub = nh.advertise<mavros_msgs::AttitudeTarget>("mavros/setpoint_raw/attitude", 10);
