@@ -1,7 +1,9 @@
+source devel/setup.bash ##RUN THIS AFTER CATKIN_MAKE IF MAKING NEW NODES/MSGS, IN THE UWBFYP FOLDER
 DO THIS BEFORE RUNNING LAUNCH FILE
 source ~/PX4-Autopilot/Tools/setup_gazebo.bash ~/PX4-Autopilot ~/PX4-Autopilot/build/px4_sitl_default
 export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:~/PX4-Autopilot:~/PX4-Autopilot/Tools/sitl_gazebo
-source devel/setup.bash ##RUN THIS AFTER CATKIN_MAKE, IN THE UWBFYP FOLDER
+
+
 
 ADDITIONAL ROSCONSOLE FORMATTING (change env var to add speaking node's name to make debugging easier)
 export ROSCONSOLE_FORMAT='[${severity}] [${time}] [${node}]: ${message}'
@@ -15,15 +17,30 @@ gazebo change view to orthographic, wireframe
 close gazebo window THEN run command shutdown
 
 SEND BODY FRAME COMMAND BY VELOCITY (SINGLE VEHICLE SIM)
-rostopic pub /mavros/setpoint_raw/local mavros_msgs/PositionTarget '{coordinate_frame: 8, type_mask: 3527, velocity: {x: 5, y: 0, z: 0}}' -r 10
+rostopic pub /mavros/setpoint_raw/local mavros_msgs/PositionTarget '{coordinate_frame: 8, type_mask: 3527, velocity: {x: 1, y: 0, z: 0}}' -r 10
 SEND BODY FRAME COMMAND BY POSITION (SINGLE VEHICLE SIM)
 rostopic pub /mavros/setpoint_raw/local mavros_msgs/PositionTarget '{coordinate_frame: 8, type_mask: 3576, position: {x: 5, y: 0, z: 2}}' -r 10
+SEND BODY FRAME COMMAND BY BOTH POSITION AND VELOCITY (SINGLE VEHICLE SIM)
+rostopic pub /mavros/setpoint_raw/local mavros_msgs/PositionTarget '{coordinate_frame: 8, type_mask: 3520, position: {x: 5, y: 5, z: 2}, velocity: {x: 1, y: 5, z: 0}}' -r 10
+
+
+rostopic pub /mavros/setpoint_raw/local mavros_msgs/PositionTarget '{coordinate_frame: 8, type_mask: 4088, position: {x: 0, y: 0, z: 0.5}}' -r 10
 
 SEND BODY FRAME COMMAND BY POSITION (LEADER IN MULTI-VEHICLE SIM)(RUN THIS IMMEDIATELY)
 rostopic pub /leader/mavros/setpoint_raw/local mavros_msgs/PositionTarget '{coordinate_frame: 8, type_mask: 3576, position: {x: 5, y: 0, z: 2}}' -r 10
+
+SEND FLIGHT STATUS MESSAGE WITH STAGE 3 TO LAND
+rostopic pub /follower1/flight_status follower/flight_status '{stage: 3}' -1
 
 USEFUL THINGS TO LISTEN TO: (MULTI-VEHICLE SIM)
 rostopic echo /follower1/flight_status 
 rostopic echo /follower1/uwb_node_readings
 rostopic echo /follower1/mavros/setpoint_raw/local
 rostopic echo /gazebo/model_states
+
+MAV_USEHILGPS
+
+USEFUL THINGS TO LISTEN TO: (LEADER ACTUAL, BLIND)
+rostopic echo /mavros/local_position/pose
+rostopic echo /mavros/setpoint_raw/local
+rostopic echo /mavros/state

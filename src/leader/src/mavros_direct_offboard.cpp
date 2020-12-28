@@ -24,11 +24,11 @@ int main(int argc, char** argv) {
 		rate.sleep();
 	}
 	//OFFBOARD BY SETPOINT_POSITION
-	ros::Publisher local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10);
-	geometry_msgs::PoseStamped pose;
-	pose.pose.position.x = 0;
-	pose.pose.position.y = 0;
-	pose.pose.position.z = 1;
+	//ros::Publisher local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10);
+	//geometry_msgs::PoseStamped pose;
+	//pose.pose.position.x = 0;
+	//pose.pose.position.y = 0;
+	//pose.pose.position.z = 1;
 	//OFFBOARD BY SETPOINT_RAW/LOCAL
 	ros::Publisher target_pos_pub = nh.advertise<mavros_msgs::PositionTarget>("mavros/setpoint_raw/local", 10);
 	mavros_msgs::PositionTarget positionTarget;
@@ -37,19 +37,9 @@ int main(int argc, char** argv) {
 	//positionTarget.type_mask = 0b110111000111;//set velocities only, 3527
 	positionTarget.position.z = 1;
 	double z_offset;
-	//OFFBOARD BY SETPOINT_RAW/ATTITUDE
-	ros::Publisher target_att_pub = nh.advertise<mavros_msgs::AttitudeTarget>("mavros/setpoint_raw/attitude", 10);
-	mavros_msgs::AttitudeTarget attitudeTarget;
-	attitudeTarget.type_mask = 0b00111;//set attitude and orientation only
-	attitudeTarget.orientation.x = 0;
-	attitudeTarget.orientation.y = 0;
-	attitudeTarget.orientation.z = 0;
-	attitudeTarget.orientation.w = 0;
-	attitudeTarget.thrust = 0.5;//set thrust to 0.5 of maximum
 	for (int i = 150; ros::ok() && i > 0; --i) { //send a few setpoints before starting
 		//local_pos_pub.publish(pose);
 		target_pos_pub.publish(positionTarget);
-		//target_att_pub.publish(attitudeTarget);
 		ros::spinOnce();
 		rate.sleep();
 	}
@@ -72,14 +62,9 @@ int main(int argc, char** argv) {
 				last_request = ros::Time::now();
 			}
 		}
-		if (nh.getParam("/z_offset_barometer", z_offset)) {
-			//ROS_INFO("Set position target with offset %f", z_offset);
-			positionTarget.position.z = 0.5 + z_offset;
-		}
 		//STOP publishing, we will do it from command line
 		//local_pos_pub.publish(pose);
 		target_pos_pub.publish(positionTarget);//publish the latest position_Target
-		//target_att_pub.publish(attitudeTarget);
 		ros::spinOnce();
 		rate.sleep();
 	}
