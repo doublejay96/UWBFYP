@@ -46,15 +46,13 @@ int main(int argc, char** argv) {
 	//}
 	mavros_msgs::SetMode autotakeoff_set_mode;
 	autotakeoff_set_mode.request.custom_mode = "AUTO.TAKEOFF";
-	mavros_msgs::SetMode offboard_set_mode;
-	offboard_set_mode.request.custom_mode = "OFFBOARD";
 	mavros_msgs::CommandBool arm_cmd;
 	arm_cmd.request.value = true;
 	ros::Time last_request = ros::Time::now();
 	ros::Time time_armed;
 	while (ros::ok()) {
 		if (current_state.mode != "AUTO.TAKEOFF" && (ros::Time::now() - last_request > ros::Duration(5.0))) { //if not in TAKEOFF mode already, 5s since last request
-			if (set_mode_client.call(autotakeoff_set_mode) && autotakeoff_set_mode.response.mode_sent) {//if setting to auto takeoff mode is successful
+			if (set_mode_client.call(autotakeoff_set_mode) && autotakeoff_set_mode.response.mode_sent) {//if setting to offboard mode is successful
 				ROS_INFO("Auto Takeoff mode enabled");
 			}
 			last_request = ros::Time::now();
@@ -66,18 +64,16 @@ int main(int argc, char** argv) {
 				}
 				last_request = ros::Time::now();
 			} else if (current_state.armed && (ros::Time::now() - time_armed > ros::Duration(10.0))) {//if armed AND 10s have passed
-				if (set_mode_client.call(offboard_set_mode) && offboard_set_mode.response.mode_sent) {//if setting to offboard mode is successful
-					flightStatus.stage = 2;//at starting position, go to control logic by mavros_offboard
-					flight_status_pub.publish(flightStatus);//update the flightStatus
-					ROS_INFO("Assumed reached starting position, going to control logic now");
-					break;
-				}
+				ROS_INFO("Assumed reached starting position, going to control logic now");
+				break;
 			}
 		}
 		//target_pos_pub.publish(startingPosition);//publish the initial position again
 		ros::spinOnce();
 		rate.sleep();
 	}
+	flightStatus.stage = 2;//at starting position, go to control logic by mavros_offboard
+	flight_status_pub.publish(flightStatus);//update the flightStatus
 	ROS_INFO("Flight stage is now %d, mavros_takeoff_land node handing control to mavros_offboard node", flightStatus.stage);
 	while (ros::ok()) {//flight stage is 2, mavros_offboard node controlling, wait
 		if (flightStage == 3) break;

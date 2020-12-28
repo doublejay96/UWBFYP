@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   mavros_extras
   mavros_msgs
   gazebo_msgs
+  follower
 )
 
 ## System dependencies are found with CMake's conventions
@@ -139,6 +140,7 @@ include_directories(
 # add_executable(${PROJECT_NAME}_node src/leader_node.cpp)
 add_executable(mavros_direct_offboard src/mavros_direct_offboard.cpp)
 target_link_libraries(mavros_direct_offboard ${catkin_LIBRARIES})
+add_dependencies(mavros_direct_offboard follower_generate_messages_cpp)
 add_executable(record_barometer src/record_barometer.cpp)
 target_link_libraries(record_barometer ${catkin_LIBRARIES})
 

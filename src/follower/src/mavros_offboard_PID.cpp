@@ -21,29 +21,29 @@ void state_cb(const mavros_msgs::State::ConstPtr& msg) {
 	current_state = *msg;
 }
 void filteredReadingReceivedCallback(const follower::filtered_reading message) {
-    Xcm = message.Xcm_fil;//update our last known relative position of leader
-    Ycm = message.Ycm_fil;
+	Xcm = message.Xcm_fil;//update our last known relative position of leader
+	Ycm = message.Ycm_fil;
 }
 void flightStatusReceivedCallback(const follower::flight_status message) {
 	flightStage = message.stage;//update the known stage we are at
 }
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "mavros_offboard");//initialise the node, name it "mavros_offboard"  
-    ros::NodeHandle nh; //construct the first NodeHandle to fully initialise, handle contains communication fns
-    ros::Subscriber filtered_sub = nh.subscribe<follower::filtered_reading>("filtered_reading", 1000, filteredReadingReceivedCallback);//subscribe to the filtered readings published by the ma_filter node
-    ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>("mavros/state", 10, state_cb);
-    ros::Publisher target_pos_pub = nh.advertise<mavros_msgs::PositionTarget>("mavros/setpoint_raw/local", 100);
+	ros::init(argc, argv, "mavros_offboard");//initialise the node, name it "mavros_offboard"  
+	ros::NodeHandle nh; //construct the first NodeHandle to fully initialise, handle contains communication fns
+	ros::Subscriber filtered_sub = nh.subscribe<follower::filtered_reading>("filtered_reading", 1000, filteredReadingReceivedCallback);//subscribe to the filtered readings published by the ma_filter node
+	ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>("mavros/state", 10, state_cb);
+	ros::Publisher target_pos_pub = nh.advertise<mavros_msgs::PositionTarget>("mavros/setpoint_raw/local", 100);
 	ros::Subscriber flight_status_sub = nh.subscribe<follower::flight_status>("flight_status", 10, flightStatusReceivedCallback);
 	ros::Rate rate(10.0); //setpoint publishing rate MUST be faster than 2 Hz
-    while (flightStage != 2) {//while the quadcopter hasn't reached flight stage 2 (still connecting or taking off)
-        ros::spinOnce(); //call any callbacks waiting
-        rate.sleep();
-    }
-    mavros_msgs::PositionTarget positionTarget;//This is the setpoint we want to move to
-    positionTarget.coordinate_frame = 8;//Set the reference frame of the command to body (FLU) frame
+	while (flightStage != 2) {//while the quadcopter hasn't reached flight stage 2 (still connecting or taking off)
+		ros::spinOnce(); //call any callbacks waiting
+		rate.sleep();
+	}
+	mavros_msgs::PositionTarget positionTarget;//This is the setpoint we want to move to
+	positionTarget.coordinate_frame = 8;//Set the reference frame of the command to body (FLU) frame
 	//positionTarget.type_mask = 0b110111111000;//set positions only, 3576
-    positionTarget.type_mask = 0b110111000111;//set velocities only, 3527
+	positionTarget.type_mask = 0b110111000111;//set velocities only, 3527
 	//PID Controller. Consider x and y separately (assume no yaw)
 	float x_error = 0;//the error value for that instant 
 	float y_error = 0;
@@ -76,7 +76,7 @@ int main(int argc, char** argv) {
 		output_file.open(log_errors_path.c_str());
 		output_file << Kp << "," << Ki << "," << Kd << std::endl;
 	}
-    while (ros::ok() && current_state.connected && flightStage == 2) {//once at flight stage 2, begin PID controller
+	while (ros::ok() && current_state.connected && flightStage == 2) {//once at flight stage 2, begin PID controller
 		x_error = (Xcm - X_offset)/100;//calculate error in X, convert to m
 		y_error = (Ycm - Y_offset)/100;
 		integral_x += x_error * dt;//add the most recent error to the integral
@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
 		derivative_x = (x_error - prev_x_error) / dt;//calculate the derivative from the previous error value
 		derivative_y = (y_error - prev_y_error) / dt;
 		positionTarget.velocity.x = (Kp * x_error) + (Ki * integral_x) + (Kd * derivative_x);//combine P,I,D terms to get the output control var
-    	positionTarget.velocity.y = (Kp * y_error) + (Ki * integral_y) + (Kd * derivative_y);
+		positionTarget.velocity.y = (Kp * y_error) + (Ki * integral_y) + (Kd * derivative_y);
 		target_pos_pub.publish(positionTarget);
 		if (log_errors) output_file << x_error << "," << y_error << std::endl;
 		//ROS_INFO("For x, P: %f, I: %Lf, D:%f, output velocity: %f", x_error, integral_x, derivative_x, positionTarget.velocity.x);
@@ -95,8 +95,8 @@ int main(int argc, char** argv) {
 		prev_y_error = y_error;
 		ros::spinOnce(); //call any callbacks waiting
 		rate.sleep();
-    }
+	}
 	ROS_INFO("Flight stage is now %d, the mavros_offboard node is exiting now", flightStage);
 	output_file.close();
-    return 0;
+	return 0;
 }
