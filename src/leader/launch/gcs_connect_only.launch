@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <launch>
 	<!-- This combination of nodes is needed for control of the leader in actual flight. -->
-	<node pkg="leader" type="mavros_direct_offboard" name="mavros_direct_offboard" output="screen"/>
-	<node pkg="follower" type="mavros_takeoff_land" name="mavros_takeoff_land" output="screen"/>
+	<!-- node pkg="leader" type="mavros_direct_offboard" name="mavros_direct_offboard" output="screen"/-->
+	<!-- node pkg="follower" type="mavros_takeoff_land" name="mavros_takeoff_land" output="screen"/-->
 	<!-- node pkg="leader" type="feedback_fake_vicon" name="feedback_fake_vicon" output="screen"-->
 	<!-- LOAD LEADER PARAMETER FILES (WITHIN LEADER NAMESPACE) -->
 	<rosparam command="load" file="param/leader_actual_params.yaml"/>

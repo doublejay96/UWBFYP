@@ -12,7 +12,7 @@ void state_cb(const mavros_msgs::State::ConstPtr& msg) {
 }
 uint8_t flightStage = 0;//the current flight status, to activate the sending of offboard commands
 void flightStatusReceivedCallback(const follower::flight_status message) {
-    flightStage = message.stage;//update the known stage we are at
+	flightStage = message.stage;//update the known stage we are at
 }
 
 int main(int argc, char** argv) {
@@ -34,16 +34,16 @@ int main(int argc, char** argv) {
 	}
 	flightStatus.stage = 1;//connected, going to arm and take off
 	flight_status_pub.publish(flightStatus);//update the flightStatus
-	//mavros_msgs::PositionTarget startingPosition;
-	//startingPosition.coordinate_frame = 8; //FRAME_BODY_NED
-	//startingPosition.type_mask = 0b110111111000;//set positions only, 3576
+	mavros_msgs::PositionTarget startingPosition;
+	startingPosition.coordinate_frame = 8; //FRAME_BODY_NED
+	startingPosition.type_mask = 0b110111111000;//set positions only, 3576
 	//startingPosition.type_mask = 0b110111000111;//set velocities only, 3527
-	//startingPosition.position.z = 2;
-	//for (int i = 10; ros::ok() && i > 0; --i) { //send a few setpoints before starting
-	//	target_pos_pub.publish(startingPosition);
-	//	ros::spinOnce();
-	//	rate.sleep();
-	//}
+	startingPosition.position.z = 1;
+	for (int i = 10; ros::ok() && i > 0; --i) { //send a few setpoints before starting
+		target_pos_pub.publish(startingPosition);
+		ros::spinOnce();
+		rate.sleep();
+	}
 	mavros_msgs::SetMode autotakeoff_set_mode;
 	autotakeoff_set_mode.request.custom_mode = "AUTO.TAKEOFF";
 	mavros_msgs::SetMode offboard_set_mode;
@@ -55,26 +55,24 @@ int main(int argc, char** argv) {
 	while (ros::ok()) {
 		if (current_state.mode != "AUTO.TAKEOFF" && (ros::Time::now() - last_request > ros::Duration(5.0))) { //if not in TAKEOFF mode already, 5s since last request
 			if (set_mode_client.call(autotakeoff_set_mode) && autotakeoff_set_mode.response.mode_sent) {//if setting to auto takeoff mode is successful
-				ROS_INFO("Auto Takeoff mode enabled");
+				ROS_INFO("Auto takeoff mode enabled");
 			}
 			last_request = ros::Time::now();
 		} else {//in AUTO.TAKEOFF mode
 			if (!current_state.armed && (ros::Time::now() - last_request > ros::Duration(5.0))) {//if not armed, 5s since last request
 				if (arming_client.call(arm_cmd) && arm_cmd.response.success) {//if arming call succeeded
-					ROS_INFO("Vehicle armed, changing flight status to 2 in 10 seconds");
+					ROS_INFO("Vehicle armed, changing flight status to 2 in 20 seconds");
 					time_armed = ros::Time::now();//record this time since arm, pass over control
 				}
 				last_request = ros::Time::now();
-			} else if (current_state.armed && (ros::Time::now() - time_armed > ros::Duration(10.0))) {//if armed AND 10s have passed
-				if (set_mode_client.call(offboard_set_mode) && offboard_set_mode.response.mode_sent) {//if setting to offboard mode is successful
-					flightStatus.stage = 2;//at starting position, go to control logic by mavros_offboard
-					flight_status_pub.publish(flightStatus);//update the flightStatus
-					ROS_INFO("Assumed reached starting position, going to control logic now");
-					break;
-				}
+			} else if (current_state.armed && (ros::Time::now() - time_armed > ros::Duration(20.0))) {//if armed AND 10s have passed
+				flightStatus.stage = 2;//at starting position, go to control logic by mavros_offboard
+				flight_status_pub.publish(flightStatus);//update the flightStatus
+				ROS_INFO("Assumed reached starting position, going to control logic now");
+				break;
 			}
 		}
-		//target_pos_pub.publish(startingPosition);//publish the initial position again
+		target_pos_pub.publish(startingPosition);//publish the initial position again
 		ros::spinOnce();
 		rate.sleep();
 	}
