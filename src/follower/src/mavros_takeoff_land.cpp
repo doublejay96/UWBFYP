@@ -53,9 +53,9 @@ int main(int argc, char** argv) {
 	ros::Time last_request = ros::Time::now();
 	ros::Time time_armed;
 	while (ros::ok()) {
-		if (current_state.mode != "AUTO.TAKEOFF" && (ros::Time::now() - last_request > ros::Duration(5.0))) { //if not in TAKEOFF mode already, 5s since last request
-			if (set_mode_client.call(autotakeoff_set_mode) && autotakeoff_set_mode.response.mode_sent) {//if setting to auto takeoff mode is successful
-				ROS_INFO("Auto takeoff mode enabled");
+		if (current_state.mode != "OFFBOARD" && (ros::Time::now() - last_request > ros::Duration(5.0))) { //if not in TAKEOFF mode already, 5s since last request
+			if (set_mode_client.call(offboard_set_mode) && offboard_set_mode.response.mode_sent) {//if setting to auto takeoff mode is successful
+				ROS_INFO("OFFBOARD mode enabled");
 			}
 			last_request = ros::Time::now();
 		} else {//in AUTO.TAKEOFF mode
