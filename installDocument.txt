@@ -66,3 +66,27 @@ export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:$(pwd):$(pwd)/Tools/sitl_gazebo
 
 roslaunch px4 multi_uav_mavros_sitl.launch
 
+##Installation of VRPN, vrpn_client_ros ROS package on odroid##
+#Installing VRPN#
+cd ~
+git clone https://github.com/vrpn/vrpn.git
+cd vrpn
+mkdir build
+cd build
+cmake ../
+make
+sudo make install
+#move these cmake files into the user cmake Modules#
+sudo mv vrpn/cmake/FindVRPN.cmake /usr/share/cmake-3.16/Modules/FindVRPN.cmake
+sudo mv vrpn/cmake/Findquatlib.cmake /usr/share/cmake-3.16/Modules/Findquatlib.cmake
+#Installing roslint#
+sudo apt-get install ros-noetic-roslint
+#Installing vrpn_client_ros#
+cd ~
+mkdir vicon
+mkdir vicon/src
+cd vicon/src
+git clone https://github.com/ros-drivers/vrpn_client_ros.git
+cd ..
+catkin_make
+#Add "source ~/vicon/devel/setup.bash" to ~/.bashrc" as well.#

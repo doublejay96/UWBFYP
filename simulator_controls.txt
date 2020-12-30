@@ -32,6 +32,8 @@ rostopic pub /leader/mavros/setpoint_raw/local mavros_msgs/PositionTarget '{coor
 SEND FLIGHT STATUS MESSAGE WITH STAGE 3 TO LAND
 rostopic pub /follower1/flight_status follower/flight_status '{stage: 3}' -1
 
+rostopic pub /mavros/flight_status follower/flight_status '{stage: 3}' -1
+
 USEFUL THINGS TO LISTEN TO: (MULTI-VEHICLE SIM)
 rostopic echo /follower1/flight_status 
 rostopic echo /follower1/uwb_node_readings
@@ -39,6 +41,8 @@ rostopic echo /follower1/mavros/setpoint_raw/local
 rostopic echo /gazebo/model_states
 
 MAV_USEHILGPS
+gcs_url:=udp://:14550@192.168.1.136   (LAPTOP)
+gcs_url:=udp://:14550@192.168.1.105   (DESKTOP)
 
 USEFUL THINGS TO LISTEN TO: (LEADER ACTUAL, BLIND)
 rostopic echo /mavros/local_position/pose
