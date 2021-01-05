@@ -1,2 +1,5 @@
 is_leader: true
 waypoints: true
+override_home_pos: true
+home_x: 0
+home_y: -2

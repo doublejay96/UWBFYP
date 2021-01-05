@@ -32,6 +32,8 @@ int main(int argc, char** argv) {
 		ros::spinOnce(); //call any callbacks waiting
 		rate.sleep();
 	}
+	bool override_home_pos = false;//default is to assume home position is 0,0
+	nh.param("override_home_pos", override_home_pos, false);//if needed, override to new home position from VICON
 	flightStatus.stage = 1;//connected, going to arm and take off
 	flight_status_pub.publish(flightStatus);//update the flightStatus
 	mavros_msgs::PositionTarget startingPosition;
@@ -39,6 +41,14 @@ int main(int argc, char** argv) {
 	startingPosition.type_mask = 0b110111111000;//set positions only, 3576
 	//startingPosition.type_mask = 0b110111000111;//set velocities only, 3527
 	startingPosition.position.z = 1;
+	if (override_home_pos) {
+		float home_x = 0, home_y = 0;//the new home position
+		nh.getParam("home_x", home_x);
+		nh.getParam("home_y", home_y);
+		startingPosition.position.x = home_x;
+		startingPosition.position.y = home_y;
+		ROS_INFO("Overwrote home position, takeoff to (%f, %f, %f)", startingPosition.position.x, startingPosition.position.y, startingPosition.position.z);
+	}
 	for (int i = 10; ros::ok() && i > 0; --i) { //send a few setpoints before starting
 		target_pos_pub.publish(startingPosition);
 		ros::spinOnce();

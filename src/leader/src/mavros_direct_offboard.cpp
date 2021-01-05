@@ -59,24 +59,21 @@ int main(int argc, char** argv) {
 		ros::spinOnce(); //call any callbacks waiting
 		rate.sleep();
 	}
-	//OFFBOARD BY SETPOINT_POSITION
-	//ros::Publisher local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10);
-	//geometry_msgs::PoseStamped pose;
-	//pose.pose.position.x = 0;
-	//pose.pose.position.y = 0;
-	//pose.pose.position.z = 1;
 	//OFFBOARD BY SETPOINT_RAW/LOCAL
 	ros::Publisher target_pos_pub = nh.advertise<mavros_msgs::PositionTarget>("mavros/setpoint_raw/local", 10);
 	mavros_msgs::PositionTarget positionTarget;
 	positionTarget.coordinate_frame = 8; //FRAME_BODY_NED
 	positionTarget.type_mask = 0b111111111000;//set positions only, 3576
-	//positionTarget.type_mask = 0b110111000111;//set velocities only, 3527
 	positionTarget.position.z = 1;
-	//for (int i = 20; ros::ok() && i > 0; --i) { //send a few setpoints before starting
-	//	//local_pos_pub.publish(pose);
-	//	ros::spinOnce();
-	//	rate.sleep();
-	//}
+	bool override_home_pos = false;//default is to assume home position is 0,0
+    nh.param("override_home_pos", override_home_pos, false);//if needed, override to new home position from VICON
+    if (override_home_pos) {
+        float home_x = 0, home_y = 0;//the new home position
+        nh.getParam("home_x", home_x);
+        nh.getParam("home_y", home_y);
+        positionTarget.position.x = home_x;
+        positionTarget.position.y = home_y;
+    }
 	while (ros::ok() && flightStage != 2) {//while the quadcopter hasn't reached flight stage 2 (still connecting or taking off)
 		target_pos_pub.publish(positionTarget);
 		ros::spinOnce(); //call any callbacks waiting
@@ -92,7 +89,6 @@ int main(int argc, char** argv) {
 		currentWaypointDuration = ros::Duration(currentWaypoint->duration);
 		ROS_INFO("Moving to first waypoint: (%.3f, %.3f, %.3f), duration %.3f seconds", currentWaypoint->x, currentWaypoint->y, currentWaypoint->z, currentWaypoint->duration);
 		last_waypoint_time = ros::Time::now();//start time of first waypoint at time of arming
-
 	}
 	while (ros::ok() && current_state.connected && flightStage == 2) {//once at flight stage 2, begin offboard control
 		if (ros::Time::now() - last_waypoint_time > currentWaypointDuration && currentWaypoint < --waypoints.end()) {
