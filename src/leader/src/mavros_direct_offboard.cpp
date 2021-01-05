@@ -6,6 +6,11 @@
 #include <mavros_msgs/PositionTarget.h>
 #include <geometry_msgs/PoseStamped.h>
 #include "follower/flight_status.h"//defines the flight_status object, in 'follower' namespace
+#include <fstream>
+#include <iostream>
+#include <vector>
+#include <string>
+#include <cstdlib>
 
 mavros_msgs::State current_state;
 void state_cb(const mavros_msgs::State::ConstPtr& msg) {
@@ -13,17 +18,43 @@ void state_cb(const mavros_msgs::State::ConstPtr& msg) {
 }
 uint8_t flightStage = 0;//the current flight status, to activate the sending of offboard commands
 void flightStatusReceivedCallback(const follower::flight_status message) {
-    flightStage = message.stage;//update the known stage we are at
+	flightStage = message.stage;//update the known stage we are at
 }
+struct waypoint {
+	double x, y, z, duration;
+};
 
 int main(int argc, char** argv) {
 	ros::init(argc, argv, "mavros_direct_offboard");//initialise the node, name it
 	ros::NodeHandle nh; //construct the first NodeHandle to fully initialise, handle contains communication fns
+	bool followingWaypoints = true;
+	nh.param("waypoints", followingWaypoints, true);
+	if (nh.getParam("waypoints", followingWaypoints)) ROS_INFO("Reading from waypoints file");
 	ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>("mavros/state", 10, state_cb);
 	ros::Subscriber flight_status_sub = nh.subscribe<follower::flight_status>("flight_status", 10, flightStatusReceivedCallback);
 	ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>("mavros/cmd/arming");
 	ros::ServiceClient set_mode_client = nh.serviceClient<mavros_msgs::SetMode>("mavros/set_mode");
 	ros::Rate rate(10.0); //setpoint publishing rate MUST be faster than 2 Hz
+	std::vector<waypoint> waypoints;
+	std::ifstream waypoints_file;
+	if (followingWaypoints) {
+		waypoints_file.open("../UWBFYP/data/waypoints.txt");
+		char line[256];
+		while (waypoints_file.getline(line, 256)) {
+			char* p;
+			waypoint Waypoint;
+			Waypoint.x = atof(line);
+			p = strstr(line, ",") + 1;//next char after delimiter
+			Waypoint.y = atof(p);
+			p = strstr(p, ",") + 1;
+			Waypoint.z = atof(p);
+			p = strstr(p, ",") + 1;
+			Waypoint.duration = atof(p);
+			waypoints.push_back(Waypoint);
+			ROS_INFO("Read waypoint: (%.3f, %.3f, %.3f), duration %.3f seconds", Waypoint.x, Waypoint.y, Waypoint.z, Waypoint.duration);
+		}
+		waypoints_file.close();
+	}
 	while (ros::ok() && !current_state.connected) {
 		ros::spinOnce(); //call any callbacks waiting
 		rate.sleep();
@@ -51,28 +82,28 @@ int main(int argc, char** argv) {
 		ros::spinOnce(); //call any callbacks waiting
 		rate.sleep();
 	}
-	//mavros_msgs::SetMode offb_set_mode;
-	//offb_set_mode.request.custom_mode = "OFFBOARD";
-	//mavros_msgs::CommandBool arm_cmd;
-	//arm_cmd.request.value = true;
-	//ros::Time last_request = ros::Time::now();
-	//while (ros::ok()) {
+	ros::Time last_waypoint_time = ros::Time::now();//time at which last waypoint was 'reached'
+	std::vector<waypoint>::iterator currentWaypoint = waypoints.begin();//iterator, first waypoint
+	ros::Duration currentWaypointDuration = ros::Duration(0.0);//ros::Duration variable saves on recalculation
+	if (followingWaypoints) {
+		positionTarget.position.x = currentWaypoint->x;
+		positionTarget.position.y = currentWaypoint->y;
+		positionTarget.position.z = currentWaypoint->z;
+		currentWaypointDuration = ros::Duration(currentWaypoint->duration);
+		ROS_INFO("Moving to first waypoint: (%.3f, %.3f, %.3f), duration %.3f seconds", currentWaypoint->x, currentWaypoint->y, currentWaypoint->z, currentWaypoint->duration);
+		last_waypoint_time = ros::Time::now();//start time of first waypoint at time of arming
+
+	}
 	while (ros::ok() && current_state.connected && flightStage == 2) {//once at flight stage 2, begin offboard control
-		//if (current_state.mode != "OFFBOARD" && (ros::Time::now() - last_request > ros::Duration(5.0))) { //if not in OFFBOARD mode already, 5s since last request
-		//	if (set_mode_client.call(offb_set_mode) && offb_set_mode.response.mode_sent) {//if setting to offboard mode is successful
-		//		ROS_INFO("Offboard enabled");
-		//	}
-		//	last_request = ros::Time::now();
-		//} else {
-		//	if (!current_state.armed && (ros::Time::now() - last_request > ros::Duration(5.0))) {//if not armed, 5s since last request
-		//		if (arming_client.call(arm_cmd) && arm_cmd.response.success) {//if arming call succeeded
-		//			ROS_INFO("Vehicle armed");
-		//		}
-		//		last_request = ros::Time::now();
-		//	}
-		//}
-		//STOP publishing, we will do it from command line
-		//local_pos_pub.publish(pose);
+		if (ros::Time::now() - last_waypoint_time > currentWaypointDuration && currentWaypoint < --waypoints.end()) {
+			currentWaypoint++;//if not yet at the end, increment the iterator to point to next waypoint
+			positionTarget.position.x = currentWaypoint->x;//update setpoint coordinates to publish
+			positionTarget.position.y = currentWaypoint->y;
+			positionTarget.position.z = currentWaypoint->z;
+			currentWaypointDuration = ros::Duration(currentWaypoint->duration);//update the duration
+			last_waypoint_time = ros::Time::now();//reset the time to now
+			ROS_INFO("Moving to next waypoint: (%.3f, %.3f, %.3f), duration %.3f seconds", currentWaypoint->x, currentWaypoint->y, currentWaypoint->z, currentWaypoint->duration);
+		}
 		target_pos_pub.publish(positionTarget);//publish the latest position_Target
 		ros::spinOnce();
 		rate.sleep();

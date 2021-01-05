@@ -61,11 +61,11 @@ int main(int argc, char** argv) {
 		} else {//in AUTO.TAKEOFF mode
 			if (!current_state.armed && (ros::Time::now() - last_request > ros::Duration(5.0))) {//if not armed, 5s since last request
 				if (arming_client.call(arm_cmd) && arm_cmd.response.success) {//if arming call succeeded
-					ROS_INFO("Vehicle armed, changing flight status to 2 in 20 seconds");
+					ROS_INFO("Vehicle armed, changing flight status to 2 in 10 seconds");
 					time_armed = ros::Time::now();//record this time since arm, pass over control
 				}
 				last_request = ros::Time::now();
-			} else if (current_state.armed && (ros::Time::now() - time_armed > ros::Duration(20.0))) {//if armed AND 10s have passed
+			} else if (current_state.armed && (ros::Time::now() - time_armed > ros::Duration(10.0))) {//if armed AND 10s have passed
 				flightStatus.stage = 2;//at starting position, go to control logic by mavros_offboard
 				flight_status_pub.publish(flightStatus);//update the flightStatus
 				ROS_INFO("Assumed reached starting position, going to control logic now");
