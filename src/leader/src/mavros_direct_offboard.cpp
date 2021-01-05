@@ -108,5 +108,6 @@ int main(int argc, char** argv) {
 		ros::spinOnce();
 		rate.sleep();
 	}
+	ROS_INFO("Exiting mavros_direct_offboard, should go to automatic landing");
 	return 0;
 }

@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
 	}
 	mavros_msgs::SetMode autoland_set_mode;
 	autoland_set_mode.request.custom_mode = "AUTO.LAND";
-	while (ros::ok()) {
+	while (ros::ok() && flightStage == 3) {
 		if (current_state.mode != "AUTO.LAND") {
 			if (set_mode_client.call(autoland_set_mode) && autoland_set_mode.response.mode_sent) {//if setting to auto land mode successfull
 				ROS_INFO("Set to automatic landing mode enabled");
