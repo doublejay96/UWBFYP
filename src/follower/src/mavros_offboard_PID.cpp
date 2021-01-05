@@ -86,8 +86,8 @@ int main(int argc, char** argv) {
 		output_file << Kp << "," << Ki << "," << Kd << std::endl;
 	}
 	while (ros::ok() && current_state.connected && flightStage == 2) {//once at flight stage 2, begin PID controller
-		x_error = (Xcm - X_offset)/100;//calculate error in X, convert to m
-		y_error = (Ycm - Y_offset)/100;
+		x_error = (Ycm - Y_offset)/100;//calculate error in X, convert to m
+		y_error = (Xcm - X_offset)/100;
 		integral_x += x_error * dt;//add the most recent error to the integral
 		integral_y += y_error * dt;
 		integral_z += z_error * dt;
@@ -99,9 +99,9 @@ int main(int argc, char** argv) {
 		positionTarget.velocity.z = (Kp * z_error) + (Ki * integral_z) + (Kd * derivative_z);
 		target_pos_pub.publish(positionTarget);
 		if (log_errors) output_file << x_error << "," << y_error << "," << z_error << std::endl;
-		//ROS_INFO("For x, P: %f, I: %Lf, D:%f, output velocity: %f", x_error, integral_x, derivative_x, positionTarget.velocity.x);
-		//ROS_INFO("For y, P: %f, I: %Lf, D:%f, output velocity: %f", y_error, integral_y, derivative_y, positionTarget.velocity.y);
-		//ROS_INFO("For z, P: %f, I: %Lf, D:%f, output velocity: %f", z_error, integral_z, derivative_z, positionTarget.velocity.z);
+		ROS_INFO("For x, P: %f, I: %Lf, D:%f, output velocity: %f", x_error, integral_x, derivative_x, positionTarget.velocity.x);
+		ROS_INFO("For y, P: %f, I: %Lf, D:%f, output velocity: %f", y_error, integral_y, derivative_y, positionTarget.velocity.y);
+		ROS_INFO("For z, P: %f, I: %Lf, D:%f, output velocity: %f", z_error, integral_z, derivative_z, positionTarget.velocity.z);
 		prev_x_error = x_error;//store the error value for the next loop
 		prev_y_error = y_error;
 		prev_z_error = z_error;

@@ -5,3 +5,6 @@ override_PID_constants: true
 PID_Kp: 0.45
 PID_Ki: 0
 PID_Kd: 0.40
+override_home_pos: false
+home_x: 0
+home_y: 0
