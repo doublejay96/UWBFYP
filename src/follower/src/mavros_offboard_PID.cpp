@@ -7,6 +7,7 @@
 #include <geometry_msgs/PoseStamped.h>//for listening to vision_pose/pose topic
 #include "follower/flight_status.h"//defines the flight_status object, in 'follower' namespace
 #include "follower/filtered_reading.h"//defines the filtered_reading object
+#include "follower/PID_error.h"
 #include <fstream>
 #include <iostream>
 
@@ -14,7 +15,7 @@ mavros_msgs::State current_state;//global var to monitor the current state (of t
 uint8_t flightStage = 0;//the current flight status, to activate the sending of offboard commands
 float Xcm, Ycm;//LAST KNOWN position of UWB tag relative to node (in cm, F-L reference axes)(message def is float32s)
 float desired_z = 1, z_error;//Z-displacement of follower from desired altitude (obtained directly from VICON)
-float X_offset = 0, Y_offset = 100;//distance to keep the leader at relative to folllower (in cm, F-L reference axes)
+float X_offset = 0, Y_offset = 300;//distance to keep the leader at relative to folllower (in cm, F-L reference axes)
 double Kp = 0.45, Ki = 0, Kd = 0.4;//P, I and D gains (placeholder values)
 const float dt = 0.1;//dt used to differentiate/integrate, reciprocal of 10 Hz update rate from UWB node
 
@@ -41,6 +42,7 @@ int main(int argc, char** argv) {
 	ros::Subscriber altitude_sub = nh.subscribe<geometry_msgs::PoseStamped>("mavros/vision_pose/pose", 100, altitudeCallback);
 	ros::Publisher target_pos_pub = nh.advertise<mavros_msgs::PositionTarget>("mavros/setpoint_raw/local", 100);
 	ros::Subscriber flight_status_sub = nh.subscribe<follower::flight_status>("flight_status", 10, flightStatusReceivedCallback);
+	ros::Publisher PID_error_pub = nh.advertise<follower::PID_error>("PID_error", 100);
 	ros::Rate rate(10.0); //setpoint publishing rate MUST be faster than 2 Hz
 	while (flightStage != 2) {//while the quadcopter hasn't reached flight stage 2 (still connecting or taking off)
 		ros::spinOnce(); //call any callbacks waiting
@@ -75,6 +77,8 @@ int main(int argc, char** argv) {
 		nh.setParam("PID_Kd", Kd);
 		ROS_INFO("Using own PID constants, Kp: %f, Ki: %f, Kd: %f", Kp, Ki, Kd);
 	}
+	//Create PID_error publishing message
+	follower::PID_error PID_error_message;
 	bool log_errors = false;//whether to log the errors in the PID controller or not
 	std::string log_errors_path;
 	std::ofstream output_file;
@@ -85,9 +89,11 @@ int main(int argc, char** argv) {
 		output_file.open(log_errors_path.c_str());
 		output_file << Kp << "," << Ki << "," << Kd << std::endl;
 	}
-	while (ros::ok() && current_state.connected && flightStage == 2) {//once at flight stage 2, begin PID controller
-		x_error = (Ycm - Y_offset)/100;//calculate error in X, convert to m
-		y_error = (Xcm - X_offset)/100;
+	while (ros::ok() && current_state.connected) {//begin PID controller
+		if (flightStage == 3) break;
+		x_error = (Xcm - X_offset)/100;//calculate error in X, convert to m
+		y_error = -(Ycm - Y_offset)/100;
+		//z_error is calculated in the callback from the VICON
 		integral_x += x_error * dt;//add the most recent error to the integral
 		integral_y += y_error * dt;
 		integral_z += z_error * dt;
@@ -97,14 +103,18 @@ int main(int argc, char** argv) {
 		positionTarget.velocity.x = (Kp * x_error) + (Ki * integral_x) + (Kd * derivative_x);//combine P,I,D terms to get the output control var
 		positionTarget.velocity.y = (Kp * y_error) + (Ki * integral_y) + (Kd * derivative_y);
 		positionTarget.velocity.z = (Kp * z_error) + (Ki * integral_z) + (Kd * derivative_z);
-		target_pos_pub.publish(positionTarget);
-		if (log_errors) output_file << x_error << "," << y_error << "," << z_error << std::endl;
-		ROS_INFO("For x, P: %f, I: %Lf, D:%f, output velocity: %f", x_error, integral_x, derivative_x, positionTarget.velocity.x);
-		ROS_INFO("For y, P: %f, I: %Lf, D:%f, output velocity: %f", y_error, integral_y, derivative_y, positionTarget.velocity.y);
-		ROS_INFO("For z, P: %f, I: %Lf, D:%f, output velocity: %f", z_error, integral_z, derivative_z, positionTarget.velocity.z);
+		if (flightStage == 2) target_pos_pub.publish(positionTarget);
+		if (log_errors) output_file << ros::Time::now() << "," << x_error << "," << y_error << "," << z_error << std::endl;
+		//ROS_INFO("For x, P: %f, I: %Lf, D:%f, output velocity: %f", x_error, integral_x, derivative_x, positionTarget.velocity.x);
+		//ROS_INFO("For y, P: %f, I: %Lf, D:%f, output velocity: %f", y_error, integral_y, derivative_y, positionTarget.velocity.y);
+		//ROS_INFO("For z, P: %f, I: %Lf, D:%f, output velocity: %f", z_error, integral_z, derivative_z, positionTarget.velocity.z);
 		prev_x_error = x_error;//store the error value for the next loop
 		prev_y_error = y_error;
 		prev_z_error = z_error;
+		PID_error_message.x_error = x_error;
+		PID_error_message.y_error = y_error;
+		PID_error_message.z_error = z_error;
+		PID_error_pub.publish(PID_error_message);
 		ros::spinOnce(); //call any callbacks waiting
 		rate.sleep();
 	}

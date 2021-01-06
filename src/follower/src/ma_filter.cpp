@@ -1,4 +1,4 @@
-//This node implements a moving-average filter to smooth out the noise from the UWB readings. It subscribes to '/uwb_node_readings' topic and publishes the filtered readings to the '/filtered_reading' topic
+//This node implements a moving-average filter to smooth out the noise from the UWB readings. It subscribes to '/uwb_node_readings' topic and publishes the filtered readings to the '/filtered_reading' topic. It also optionally records both the raw and averaged readings to file.
 #include "ros/ros.h" //all headers necessary for ROS functions
 #include "follower/uwb_node_reading.h"//defines the uwb_node_reading object, in 'follower' namespace 
 #include "follower/filtered_reading.h"//defines the filtered_reading object
@@ -35,6 +35,7 @@ class maFilter {
             //ROS_INFO("PDoA distance: %d, phase: %d, Xcm: %d, Ycm: %d", message.D, message.P, message.Xcm, message.Ycm);//display extracted frame data to rosconsole for debugging
         }
 };
+
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "ma_filter");//initialise the node, name it "uwb_node_reader"

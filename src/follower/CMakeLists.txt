@@ -56,6 +56,7 @@ add_message_files(
   uwb_node_reading.msg
   filtered_reading.msg
   flight_status.msg
+  PID_error.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -154,6 +155,9 @@ target_link_libraries(mavros_takeoff_land ${catkin_LIBRARIES})
 add_dependencies(mavros_takeoff_land follower_generate_messages_cpp)
 add_executable(position_logger src/position_logger.cpp)
 target_link_libraries(position_logger ${catkin_LIBRARIES})
+add_executable(super_logger src/super_logger.cpp)
+target_link_libraries(super_logger ${catkin_LIBRARIES})
+add_dependencies(super_logger follower_generate_messages_cpp)
 
 add_executable(mavros_example src/mavros_example.cpp)
 target_link_libraries(mavros_example ${catkin_LIBRARIES})

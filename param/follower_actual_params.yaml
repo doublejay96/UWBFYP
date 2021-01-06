@@ -1,8 +1,13 @@
 is_leader: false
+super_logger: true
+super_logger_path: "/home/odroid/UWBFYP/logs/super_log.csv"
 log_errors: true
-log_errors_path: "/home/uwbfyp/UWBFYP/logs/error_logging.csv"
+log_errors_path: "/home/odroid/UWBFYP/logs/error_logs.csv"
+log_uwb_readings: true
+log_readings_path: "/home/odroid/UWBFYP/logs/reading_logs.csv"
+log_filtered_readings_path: "/home/odroid/UWBFYP/logs/filtered_reading_logs.csv"
 override_PID_constants: true
-PID_Kp: 0.45
+PID_Kp: 0.25
 PID_Ki: 0
 PID_Kd: 0.40
 override_home_pos: false

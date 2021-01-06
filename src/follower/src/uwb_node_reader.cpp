@@ -1,12 +1,15 @@
 //This ROS node reads the UWB node through the serial port, and publishes the important information (D,P,Xcm,Ycm) to a ROS topic '/uwb_node_reading'.
 #include "ros/ros.h" //all headers necessary for ROS functions
 #include "follower/uwb_node_reading.h"//defines the uwb_node_reading object, in 'follower' namespace 
+#include "follower/filtered_reading.h"
 #include <string> //strstr find substring function
 //Header files for serial port
 #include <termios.h> //terminal control and struct
 #include <fcntl.h> //file control
 #include <errno.h> //error functions
 #include <unistd.h> //POSIX OS API, read/write/close functions
+#include <fstream>
+#include <iostream>
 
 //this function reads the JSON frame (in string form) and writes the important info (D,P,Xcm,Ycm) into the uwb_node_reading object pointer
 void readPDoAFrame(char* read_buf, follower::uwb_node_reading* output_info, char* D_field, char* P_field, char* Xcm_field, char* Ycm_field) {//pass in all these to avoid re-declaring
@@ -22,11 +25,28 @@ void readPDoAFrame(char* read_buf, follower::uwb_node_reading* output_info, char
     return;
 }
 
+bool log_uwb_readings = false;
+std::ofstream readings_file;//the file we want to store the UWB readings in
+std::ofstream filtered_readings_file;
+void logReading (const follower::uwb_node_reading message) {
+	if (log_uwb_readings) {
+		readings_file << ros::Time::now() << "," << message.D << "," << message.P << "," << message.Xcm << "," << message.Ycm << std::endl;
+		readings_file.flush();
+	}
+}
+void logFilteredReading (const follower::filtered_reading message) {
+	if (log_uwb_readings) {
+		filtered_readings_file << ros::Time::now() << ","  << message.D_fil << "," << message.P_fil << "," << message.Xcm_fil << "," << message.Ycm_fil << std::endl;
+		filtered_readings_file.flush();
+	}
+}
+
+
 int main(int argc, char** argv) {
     ros::init(argc, argv, "uwb_node_reader");//initialise the node, name it "uwb_node_reader"
     ros::NodeHandle nh; //construct the first NodeHandle to fully initialise, handle contains communication fns
     ros::Publisher reading_pub = nh.advertise<follower::uwb_node_reading>("uwb_node_reading", 1000);//advertise that we want to publish on topic 'uwb_node_reading', 1000 message queue
-    ros::Rate loop_rate(10);//the rate this thing runs (10 Hz, same as UWB serial port input)
+    ros::Rate rate(10);//the rate this thing runs (10 Hz, same as UWB serial port input)
     //Open the serial port
     int serial_port = open("/dev/ttyACM0", O_RDWR); //returns the file descriptor (usually 3), set O_RDWR for both read and write, O_RDONLY for read only access
     if (serial_port < 0) {
@@ -42,6 +62,19 @@ int main(int argc, char** argv) {
     if (tcsetattr(serial_port, TCSANOW, &tty) != 0) {//get parameters associated with the object in serial_port, stores in termios struct, returns 0 on success
         ROS_INFO("Error setting attributes from file descriptor to termios struct");
     }
+    nh.param("log_uwb_readings", log_uwb_readings, false);//if not set, default to FALSE
+    std::string log_readings_path;
+	std::string log_filtered_readings_path;
+    std::ofstream output_file;//the file we want to store the UWB readings in
+    if (log_uwb_readings) {
+        nh.getParam("log_readings_path", log_readings_path);
+        nh.getParam("log_filtered_readings_path", log_filtered_readings_path);
+        ROS_INFO("UWB reading logging enabled for follower, output to %s and %s", log_readings_path.c_str(), log_filtered_readings_path.c_str());
+        readings_file.open(log_readings_path.c_str());
+        filtered_readings_file.open(log_filtered_readings_path.c_str());
+    }
+	ros::Subscriber reading_sub = nh.subscribe<follower::uwb_node_reading>("uwb_node_reading", 100, logReading);
+	ros::Subscriber filtered_sub = nh.subscribe<follower::filtered_reading>("filtered_reading", 100, logFilteredReading);
     char read_buf[256];//buffer to store what we read from the serial port (assume each line less than 256 chars)
     int n = 0;//number of bytes read from the serial port (1 char is 1 byte)
     n = read(serial_port, &read_buf, sizeof(read_buf)); //read the first (usually bugged) line to discard
@@ -56,7 +89,7 @@ int main(int argc, char** argv) {
         //ROS_INFO("%s", read_buf); //display raw frame to rosconsole for debugging
         reading_pub.publish(message); //publish the message object
         ros::spinOnce(); //call any callbacks waiting (none currently)
-        loop_rate.sleep(); //sleep for appropriate amt of time to maintain rate
+        rate.sleep(); //sleep for appropriate amt of time to maintain rate
     }
     close(serial_port);//close the file descriptor gracefully
     return 0;
