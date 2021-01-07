@@ -9,7 +9,7 @@
 	<!-- MAVROS -->
 	<include file="$(find mavros)/launch/px4.launch">
 		<!-- GCS link is provided by SITL -->
-		<arg name="gcs_url" value="udp://:14550@192.168.1.102"/>
+		<arg name="gcs_url" value="udp://:14550@192.168.1.103"/>
 		<arg name="fcu_url" value="$(arg fcu_url)"/>
 		<arg name="respawn_mavros" value="$(arg respawn_mavros)"/>
 	</include>

@@ -15,8 +15,10 @@ mavros_msgs::State current_state;//global var to monitor the current state (of t
 uint8_t flightStage = 0;//the current flight status, to activate the sending of offboard commands
 float Xcm, Ycm;//LAST KNOWN position of UWB tag relative to node (in cm, F-L reference axes)(message def is float32s)
 float desired_z = 1, z_error;//Z-displacement of follower from desired altitude (obtained directly from VICON)
-float X_offset = 0, Y_offset = 300;//distance to keep the leader at relative to folllower (in cm, F-L reference axes)
-double Kp = 0.45, Ki = 0, Kd = 0.4;//P, I and D gains (placeholder values)
+float X_offset = -30, Y_offset = 300;//distance to keep the leader at relative to folllower (in cm, F-L reference axes)
+double Kp_x = 0.15, Ki_x = 0.025, Kd_x = 0;//P, I and D gains (placeholder values) in x_error (forward/backward)
+double Kp_y = 0.15, Ki_y = 0.025, Kd_y = 0;//P, I and D gains (placeholder values) in y_error (left/right)
+double Kp_z = 0.15, Ki_z = 0.025, Kd_z = 0;//P, I and D gains (placeholder values) in z_error (up/down)
 const float dt = 0.1;//dt used to differentiate/integrate, reciprocal of 10 Hz update rate from UWB node
 
 //callbacks update the relevant global var when receiving on topics "mavros/state", "filtered_reading", "flight_status"
@@ -51,7 +53,9 @@ int main(int argc, char** argv) {
 	mavros_msgs::PositionTarget positionTarget;//This is the setpoint we want to move to
 	positionTarget.coordinate_frame = 8;//Set the reference frame of the command to body (FLU) frame
 	//positionTarget.type_mask = 0b110111111000;//set positions only, 3576
-	positionTarget.type_mask = 0b110111000111;//set velocities only, 3527
+	positionTarget.type_mask = 0b110111000100;//set velocities only, 3527
+	positionTarget.yaw = 0;
+	positionTarget.yaw_rate = 0;
 	//PID Controller. Consider x and y separately (assume no yaw)
 	float x_error = 0;//the error value for that instant 
 	float y_error = 0;
@@ -67,15 +71,31 @@ int main(int argc, char** argv) {
 	bool override_PID_constants = false;//whether to use the Kp, Ki, Kd values in the param file or not
 	nh.param("override_PID_constants", override_PID_constants, false);//if parameter not set, default to FALSE, use the original values specified above
 	if (override_PID_constants) {//if enabled, read the Kp, Ki, Kd values loaded from the parameter file
-		nh.getParam("PID_Kp", Kp);
-		nh.getParam("PID_Ki", Ki);
-		nh.getParam("PID_Kd", Kd);
-		ROS_INFO("Using PID constants from param file, Kp: %f, Ki: %f, Kd: %f", Kp, Ki, Kd);
+		nh.getParam("PID_Kp_x", Kp_x);
+		nh.getParam("PID_Ki_x", Ki_x);
+		nh.getParam("PID_Kd_x", Kd_x);
+		ROS_INFO("Using PID constants from param file, Kp_x: %f, Ki_x: %f, Kd_x: %f", Kp_x, Ki_x, Kd_x);
+		nh.getParam("PID_Kp_y", Kp_y);
+		nh.getParam("PID_Ki_y", Ki_y);
+		nh.getParam("PID_Kd_y", Kd_y);
+		ROS_INFO("Using PID constants from param file, Kp_y: %f, Ki_y: %f, Kd_y: %f", Kp_y, Ki_y, Kd_y);
+		nh.getParam("PID_Kp_z", Kp_z);
+		nh.getParam("PID_Ki_z", Ki_z);
+		nh.getParam("PID_Kd_z", Kd_z);
+		ROS_INFO("Using PID constants from param file, Kp_z: %f, Ki_z: %f, Kd_z: %f", Kp_z, Ki_z, Kd_z);
 	} else {//if not enabled, publish your Kp, Ki, Kd values to the parameter server
-		nh.setParam("PID_Kp", Kp);
-		nh.setParam("PID_Ki", Ki);
-		nh.setParam("PID_Kd", Kd);
-		ROS_INFO("Using own PID constants, Kp: %f, Ki: %f, Kd: %f", Kp, Ki, Kd);
+		nh.setParam("PID_Kp_x", Kp_x);
+		nh.setParam("PID_Ki_x", Ki_x);
+		nh.setParam("PID_Kd_x", Kd_x);
+		ROS_INFO("Using own PID constants, Kp_x: %f, Ki_x: %f, Kd_x: %f", Kp_x, Ki_x, Kd_x);
+		nh.setParam("PID_Kp_y", Kp_y);
+		nh.setParam("PID_Ki_y", Ki_y);
+		nh.setParam("PID_Kd_y", Kd_y);
+		ROS_INFO("Using own PID constants, Kp_y: %f, Ki_y: %f, Kd_y: %f", Kp_y, Ki_y, Kd_y);
+		nh.setParam("PID_Kp_z", Kp_z);
+		nh.setParam("PID_Ki_z", Ki_z);
+		nh.setParam("PID_Kd_z", Kd_z);
+		ROS_INFO("Using own PID constants, Kp_z: %f, Ki_z: %f, Kd_z: %f", Kp_z, Ki_z, Kd_z);
 	}
 	//Create PID_error publishing message
 	follower::PID_error PID_error_message;
@@ -87,12 +107,12 @@ int main(int argc, char** argv) {
 		nh.getParam("log_errors_path", log_errors_path);
 		ROS_INFO("PID position error logging enabled for follower, output to %s", log_errors_path.c_str());
 		output_file.open(log_errors_path.c_str());
-		output_file << Kp << "," << Ki << "," << Kd << std::endl;
+		output_file << Kp_x << "," << Ki_x << "," << Kd_x << "," << Kp_y << "," << Ki_y << "," << Kd_y << "," << Kp_z << "," << Ki_z << "," << Kd_z << std::endl;
 	}
 	while (ros::ok() && current_state.connected) {//begin PID controller
 		if (flightStage == 3) break;
-		x_error = (Xcm - X_offset)/100;//calculate error in X, convert to m
-		y_error = -(Ycm - Y_offset)/100;
+		x_error = (Ycm - Y_offset)/100;//calculate error in X, convert to m
+		y_error = (Xcm - X_offset)/100;
 		//z_error is calculated in the callback from the VICON
 		integral_x += x_error * dt;//add the most recent error to the integral
 		integral_y += y_error * dt;
@@ -100,9 +120,15 @@ int main(int argc, char** argv) {
 		derivative_x = (x_error - prev_x_error) / dt;//calculate the derivative from the previous error value
 		derivative_y = (y_error - prev_y_error) / dt;
 		derivative_z = (z_error - prev_z_error) / dt;
-		positionTarget.velocity.x = (Kp * x_error) + (Ki * integral_x) + (Kd * derivative_x);//combine P,I,D terms to get the output control var
-		positionTarget.velocity.y = (Kp * y_error) + (Ki * integral_y) + (Kd * derivative_y);
-		positionTarget.velocity.z = (Kp * z_error) + (Ki * integral_z) + (Kd * derivative_z);
+		positionTarget.velocity.x = (Kp_x * x_error) + (Ki_x * integral_x) + (Kd_x * derivative_x);//combine P,I,D terms to get the output control var
+		positionTarget.velocity.y = (Kp_y * y_error) + (Ki_y * integral_y) + (Kd_y * derivative_y);
+		positionTarget.velocity.z = (Kp_z * z_error) + (Ki_z * integral_z) + (Kd_z * derivative_z);
+		if (x_error < 0.1 && x_error > -0.1) {
+			positionTarget.velocity.x = 0;
+		}
+		if (y_error < 0.1 && y_error > -0.1) {
+			positionTarget.velocity.y = 0;
+		}
 		if (flightStage == 2) target_pos_pub.publish(positionTarget);
 		if (log_errors) output_file << ros::Time::now() << "," << x_error << "," << y_error << "," << z_error << std::endl;
 		//ROS_INFO("For x, P: %f, I: %Lf, D:%f, output velocity: %f", x_error, integral_x, derivative_x, positionTarget.velocity.x);

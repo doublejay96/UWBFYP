@@ -1,22 +1,23 @@
 <?xml version="1.0"?>
 <launch>
-    <!-- This combination of nodes is needed for control of the follower in actual flight. -->
-    <node pkg="follower" type="uwb_node_reader" name="uwb_node_reader" output="screen"/>
-    <node pkg="follower" type="ma_filter" name="ma_filter" output="screen"/>
-    <node pkg="follower" type="mavros_takeoff_land" name="mavros_takeoff_land" output="screen"/>
+  <!-- This combination of nodes is needed for control of the follower in actual flight. -->
+  <node pkg="follower" type="uwb_node_reader" name="uwb_node_reader" output="screen"/>
+  <node pkg="follower" type="ma_filter" name="ma_filter" output="screen"/>
+  <node pkg="follower" type="mavros_takeoff_land" name="mavros_takeoff_land" output="screen"/>
 	<node pkg="follower" type="mavros_offboard_PID" name="mavros_offboard_PID" output="screen"/>
-    <!-- LOAD FOLLOWER PARAMETER FILES (WITHIN FOLLOWER NAMESPACE) -->
-    <rosparam command="load" file="param/follower_actual_params.yaml"/>
-    <!-- MAVROS configs -->
-    <arg name="fcu_url" default="/dev/ttyUSB0:921600"/>
-    <arg name="respawn_mavros" default="false"/>
-    <!-- MAVROS -->
-    <include file="$(find mavros)/launch/px4.launch">
-        <!-- GCS link is provided by SITL -->
-        <arg name="gcs_url" value="udp://:14550@192.168.1.102"/>
-        <arg name="fcu_url" value="$(arg fcu_url)"/>
-        <arg name="respawn_mavros" value="$(arg respawn_mavros)"/>
-    </include>
+  <node pkg="follower" type="super_logger" name="super_logger" output="screen"/>
+	<!-- LOAD FOLLOWER PARAMETER FILES (WITHIN FOLLOWER NAMESPACE) -->
+  <rosparam command="load" file="param/follower_actual_params.yaml"/>
+  <!-- MAVROS configs -->
+  <arg name="fcu_url" default="/dev/ttyUSB0:921600"/>
+  <arg name="respawn_mavros" default="false"/>
+  <!-- MAVROS -->
+  <include file="$(find mavros)/launch/px4.launch">
+    <!-- GCS link is provided by SITL -->
+    <arg name="gcs_url" value="udp://:14550@192.168.1.103"/>
+    <arg name="fcu_url" value="$(arg fcu_url)"/>
+    <arg name="respawn_mavros" value="$(arg respawn_mavros)"/>
+  </include>
   <!-- VICON VRPN CLIENT SETUP -->
 	<arg name="server" default="192.168.1.114"/>
 	<remap from="/vrpn_client_node/UWBFYP_follower/pose" to="/mavros/vision_pose/pose"/>
