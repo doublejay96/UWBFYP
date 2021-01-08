@@ -15,7 +15,7 @@ mavros_msgs::State current_state;//global var to monitor the current state (of t
 uint8_t flightStage = 0;//the current flight status, to activate the sending of offboard commands
 float Xcm, Ycm;//LAST KNOWN position of UWB tag relative to node (in cm, F-L reference axes)(message def is float32s)
 float desired_z = 1, z_error;//Z-displacement of follower from desired altitude (obtained directly from VICON)
-float X_offset = -30, Y_offset = 300;//distance to keep the leader at relative to folllower (in cm, F-L reference axes)
+float X_offset = 0, Y_offset = 300;//distance to keep the leader at relative to folllower (in cm, F-L reference axes)
 double Kp_x = 0.15, Ki_x = 0.025, Kd_x = 0;//P, I and D gains (placeholder values) in x_error (forward/backward)
 double Kp_y = 0.15, Ki_y = 0.025, Kd_y = 0;//P, I and D gains (placeholder values) in y_error (left/right)
 double Kp_z = 0.15, Ki_z = 0.025, Kd_z = 0;//P, I and D gains (placeholder values) in z_error (up/down)
@@ -46,6 +46,13 @@ int main(int argc, char** argv) {
 	ros::Subscriber flight_status_sub = nh.subscribe<follower::flight_status>("flight_status", 10, flightStatusReceivedCallback);
 	ros::Publisher PID_error_pub = nh.advertise<follower::PID_error>("PID_error", 100);
 	ros::Rate rate(10.0); //setpoint publishing rate MUST be faster than 2 Hz
+	bool override_desired_offsets = false;
+	nh.param("override_desired_offsets", override_desired_offsets, false);//if parameter not set, default to FALSE, use the original values specified above
+	if (override_desired_offsets) {
+		nh.getParam("X_offset", X_offset);
+		nh.getParam("Y_offset", Y_offset);
+		ROS_INFO("Follower offset override: set to X_offset %f, Y_offset %f", X_offset, Y_offset);
+	}
 	while (flightStage != 2) {//while the quadcopter hasn't reached flight stage 2 (still connecting or taking off)
 		ros::spinOnce(); //call any callbacks waiting
 		rate.sleep();
@@ -53,7 +60,7 @@ int main(int argc, char** argv) {
 	mavros_msgs::PositionTarget positionTarget;//This is the setpoint we want to move to
 	positionTarget.coordinate_frame = 8;//Set the reference frame of the command to body (FLU) frame
 	//positionTarget.type_mask = 0b110111111000;//set positions only, 3576
-	positionTarget.type_mask = 0b110111000100;//set velocities only, 3527
+	positionTarget.type_mask = 0b100111000111;//set velocities only, 3527
 	positionTarget.yaw = 0;
 	positionTarget.yaw_rate = 0;
 	//PID Controller. Consider x and y separately (assume no yaw)

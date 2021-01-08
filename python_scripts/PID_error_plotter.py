@@ -2,8 +2,19 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-super_logs = np.loadtxt('super_logs.csv', delimiter=',',skiprows=1,usecols=(0,12,13,15,16))
-super_logs_prev = np.loadtxt('super_logs.csv', delimiter=',',skiprows=1,usecols=(0,12,13,15,16))
+curr_run = "run10"
+prev_run = "run9"
+
+super_logs = np.loadtxt(curr_run+'/super_logs.csv', delimiter=',',skiprows=1,usecols=(0,12,13,15,16))
+super_logs_prev = np.loadtxt(prev_run+'/super_logs.csv', delimiter=',',skiprows=1,usecols=(0,12,13,15,16))
+with open(curr_run+'/PID_constants.txt') as file:
+    print("Current run PID constants:")
+    for line in file:
+        print(line)
+with open(prev_run+'/PID_constants.txt') as file:
+    print("Previous run PID constants:")
+    for line in file:
+        print(line)
 plt.figure()
 plt.plot(super_logs[:,0], super_logs[:,1], label="PID_x_error (m)", color='b')
 plt.plot(super_logs[:,0], super_logs[:,3], label="Offb_x_velocity (m/s)", color='r')
