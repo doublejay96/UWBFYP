@@ -60,9 +60,8 @@ int main(int argc, char** argv) {
 	mavros_msgs::PositionTarget positionTarget;//This is the setpoint we want to move to
 	positionTarget.coordinate_frame = 8;//Set the reference frame of the command to body (FLU) frame
 	//positionTarget.type_mask = 0b110111111000;//set positions only, 3576
-	positionTarget.type_mask = 0b100111000111;//set velocities only, 3527
+	positionTarget.type_mask = 0b101111000111;//set velocities only, 3527
 	positionTarget.yaw = 0;
-	positionTarget.yaw_rate = 0;
 	//PID Controller. Consider x and y separately (assume no yaw)
 	float x_error = 0;//the error value for that instant 
 	float y_error = 0;

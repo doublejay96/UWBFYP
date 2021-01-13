@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
 	flight_status_pub.publish(flightStatus);//update the flightStatus
 	mavros_msgs::PositionTarget startingPosition;
 	startingPosition.coordinate_frame = 8; //FRAME_BODY_NED
-	startingPosition.type_mask = 0b100111111000;//set positions only, 3576
+	startingPosition.type_mask = 0b101111111000;//set positions only, 3576
 	//startingPosition.type_mask = 0b110111000111;//set velocities only, 3527
 	startingPosition.position.z = 1;
 	startingPosition.yaw = 0;
