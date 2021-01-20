@@ -63,8 +63,9 @@ int main(int argc, char** argv) {
 	ros::Publisher target_pos_pub = nh.advertise<mavros_msgs::PositionTarget>("mavros/setpoint_raw/local", 10);
 	mavros_msgs::PositionTarget positionTarget;
 	positionTarget.coordinate_frame = 8; //FRAME_BODY_NED
-	positionTarget.type_mask = 0b111111111000;//set positions only, 3576
+	positionTarget.type_mask = 0b101111111000;//set positions only, 3576
 	positionTarget.position.z = 1;
+	positionTarget.yaw = 0;
 	bool override_home_pos = false;//default is to assume home position is 0,0
     nh.param("override_home_pos", override_home_pos, false);//if needed, override to new home position from VICON
     if (override_home_pos) {
