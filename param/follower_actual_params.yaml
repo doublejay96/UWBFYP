@@ -8,12 +8,12 @@ log_uwb_readings: true
 log_readings_path: "/home/odroid/UWBFYP/logs/reading_logs.csv"
 log_filtered_readings_path: "/home/odroid/UWBFYP/logs/filtered_reading_logs.csv"
 override_PID_constants: true
-PID_Kp_x: 0.15
-PID_Ki_x: 0
-PID_Kd_x: 0.2
-PID_Kp_y: 0.2
-PID_Ki_y: 0.01
-PID_Kd_y: 0.25
+PID_Kp_x: 0.3
+PID_Ki_x: 0.02
+PID_Kd_x: 0.5
+PID_Kp_y: 0.4
+PID_Ki_y: 0.02
+PID_Kd_y: 0.45
 PID_Kp_z: 0.15
 PID_Ki_z: 0.025
 PID_Kd_z: 0
@@ -22,4 +22,4 @@ home_x: 0
 home_y: 0
 override_desired_offsets: true
 X_offset: 0
-Y_offset: 300
+Y_offset: 200

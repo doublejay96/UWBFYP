@@ -6,8 +6,8 @@
 //length-6 moving average filter
 class maFilter {
     private:
-        int prev_vals[4][6] = {0}; //1st dim is D, P, X, Y, 2nd is the 6 previous values
-        int sums[4] = {0}; //cumulative sum of 6 values for D, P, Xcm, Ycm
+        int prev_vals[4][4] = {0}; //1st dim is D, P, X, Y, 2nd is the 4 previous values
+        int sums[4] = {0}; //cumulative sum of 4 values for D, P, Xcm, Ycm
         int buffer_pos = 0;
         float averages[4] = {0};
     public:
@@ -22,14 +22,14 @@ class maFilter {
             prev_vals[3][buffer_pos] = message.Ycm;
             for (i = 0; i < 4; i++) {
                 sums[i] += prev_vals[i][buffer_pos];//add the new readings to the cumulative sum
-                averages[i] = (float) sums[i] / 6;//divide to get the moving average, store in averages[]
+                averages[i] = (float) sums[i] / 4;//divide to get the moving average, store in averages[]
             }
             message_out.D_fil = averages[0];//write the averages to the message fields
             message_out.P_fil = averages[1];
             message_out.Xcm_fil = averages[2];
-            message_out.Ycm_fil = averages[3];
+            message_out.Ycm_fil = averages[3] + 7.3;
             filtered_pub.publish(message_out);//publish the outgoing message of filtered values
-            buffer_pos = (buffer_pos+1)%6;//increment the buffer position to the next one (circular)
+            buffer_pos = (buffer_pos+1)%4;//increment the buffer position to the next one (circular)
             //ROS_INFO("Buffer position is %d", buffer_pos);
             //ROS_INFO("Averages are D: %f, P: %f, Xcm: %f, Ycm: %f", averages[0], averages[1], averages[2], averages[3]);
             //ROS_INFO("PDoA distance: %d, phase: %d, Xcm: %d, Ycm: %d", message.D, message.P, message.Xcm, message.Ycm);//display extracted frame data to rosconsole for debugging
