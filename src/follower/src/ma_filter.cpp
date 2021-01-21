@@ -27,7 +27,7 @@ class maFilter {
             message_out.D_fil = averages[0];//write the averages to the message fields
             message_out.P_fil = averages[1];
             message_out.Xcm_fil = averages[2];
-            message_out.Ycm_fil = averages[3] + 7.3;
+            message_out.Ycm_fil = averages[3];
             filtered_pub.publish(message_out);//publish the outgoing message of filtered values
             buffer_pos = (buffer_pos+1)%4;//increment the buffer position to the next one (circular)
             //ROS_INFO("Buffer position is %d", buffer_pos);

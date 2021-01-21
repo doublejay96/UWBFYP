@@ -129,12 +129,12 @@ int main(int argc, char** argv) {
 		positionTarget.velocity.x = (Kp_x * x_error) + (Ki_x * integral_x) + (Kd_x * derivative_x);//combine P,I,D terms to get the output control var
 		positionTarget.velocity.y = (Kp_y * y_error) + (Ki_y * integral_y) + (Kd_y * derivative_y);
 		positionTarget.velocity.z = (Kp_z * z_error) + (Ki_z * integral_z) + (Kd_z * derivative_z);
-		//if (x_error < 0.1 && x_error > -0.1) {
-		//	positionTarget.velocity.x = 0;
-		//}
-		//if (y_error < 0.1 && y_error > -0.1) {
-		//	positionTarget.velocity.y = 0;
-		//}
+		if (x_error < 0.1 && x_error > -0.1) {
+			positionTarget.velocity.x = 0;
+		}
+		if (y_error < 0.1 && y_error > -0.1) {
+			positionTarget.velocity.y = 0;
+		}
 		if (flightStage == 2) target_pos_pub.publish(positionTarget);
 		if (log_errors) output_file << ros::Time::now() << "," << x_error << "," << y_error << "," << z_error << std::endl;
 		//ROS_INFO("For x, P: %f, I: %Lf, D:%f, output velocity: %f", x_error, integral_x, derivative_x, positionTarget.velocity.x);

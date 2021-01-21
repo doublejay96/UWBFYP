@@ -2,8 +2,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-curr_run = "run10"
-prev_run = "run9"
+curr_run = "run33"
+prev_run = "run31"
 
 super_logs = np.loadtxt(curr_run+'/super_logs.csv', delimiter=',',skiprows=1,usecols=(0,12,13,15,16))
 super_logs_prev = np.loadtxt(prev_run+'/super_logs.csv', delimiter=',',skiprows=1,usecols=(0,12,13,15,16))
