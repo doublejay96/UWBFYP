@@ -1,5 +1,6 @@
 //This ROS node logs several things: the VICON position of leader and follower, the UWB node readings, the filtered UWB readings, the x,y,z error calculated by the PID controller, and the corresponding x,y,z velocity setpoints given.
 #include "ros/ros.h" //all headers necessary for ROS functions
+#include "ros/package.h"
 #include "follower/uwb_node_reading.h"//defines the uwb_node_reading object, in 'follower' namespace
 #include "follower/filtered_reading.h"
 #include "follower/flight_status.h"
@@ -52,7 +53,7 @@ void logOffbVel (const mavros_msgs::PositionTarget message) {
 }
 
 int main(int argc, char** argv) {
-	ros::init(argc, argv, "uwb_node_reader");//initialise the node, name it "uwb_node_reader"
+	ros::init(argc, argv, "super_logger");//initialise the node, name it "super_logger"
 	ros::NodeHandle nh; //construct the first NodeHandle to fully initialise, handle contains communication fns
 	ros::Rate rate(10);//the rate this thing runs (10 Hz, same as UWB serial port input)
 	bool super_logger = false;
@@ -78,6 +79,7 @@ int main(int argc, char** argv) {
 		nh.getParam("PID_Kd_z", Kd_z);
 		std::string super_logger_constants_path;
 		nh.getParam("super_logger_constants_path", super_logger_constants_path);
+		super_logger_constants_path = ros::package::getPath("follower") + "/../.." + super_logger_constants_path;
 		std::ofstream constants_file;
 		constants_file.open(super_logger_constants_path.c_str());
 		constants_file << "Kp_x: " << Kp_x << ", Ki_x: " << Ki_x << ", Kd_x: " << Kd_x << std::endl;
@@ -88,6 +90,7 @@ int main(int argc, char** argv) {
 	std::string super_logger_path;
 	std::ofstream super_logger_file;
 	nh.getParam("super_logger_path", super_logger_path);
+	super_logger_path = ros::package::getPath("follower") + "/../.." + super_logger_path;
 	super_logger_file.open(super_logger_path.c_str());
 	super_logger_file << "Time (s), VICON_follower_X_pos (m), VICON_follower_Y_pos (m), VICON_follower_Z_pos (m), VICON_leader_X_pos (m), VICON_leader_Y_pos (m), VICON_leader_Z_pos (m), UWB_Xcm, UWB_Ycm, avg_Xcm, avg_Ycm, flightStage, PID_x_error (m), PID_y_error (m), PID_z_error (m), Offb_x_vel (m/s), Offb_y_vel (m/s), Offb_z_vel (m/s)" << std::endl;
 	//Create the many subscribers

@@ -25,21 +25,21 @@ void readPDoAFrame(char* read_buf, follower::uwb_node_reading* output_info, char
     return;
 }
 
-bool log_uwb_readings = false;
-std::ofstream readings_file;//the file we want to store the UWB readings in
-std::ofstream filtered_readings_file;
-void logReading (const follower::uwb_node_reading message) {
-	if (log_uwb_readings) {
-		readings_file << ros::Time::now() << "," << message.D << "," << message.P << "," << message.Xcm << "," << message.Ycm << std::endl;
-		readings_file.flush();
-	}
-}
-void logFilteredReading (const follower::filtered_reading message) {
-	if (log_uwb_readings) {
-		filtered_readings_file << ros::Time::now() << ","  << message.D_fil << "," << message.P_fil << "," << message.Xcm_fil << "," << message.Ycm_fil << std::endl;
-		filtered_readings_file.flush();
-	}
-}
+//bool log_uwb_readings = false;
+//std::ofstream readings_file;//the file we want to store the UWB readings in
+//std::ofstream filtered_readings_file;
+//void logReading (const follower::uwb_node_reading message) {
+//	if (log_uwb_readings) {
+//		readings_file << ros::Time::now() << "," << message.D << "," << message.P << "," << message.Xcm << "," << message.Ycm << std::endl;
+//		readings_file.flush();
+//	}
+//}
+//void logFilteredReading (const follower::filtered_reading message) {
+//	if (log_uwb_readings) {
+//		filtered_readings_file << ros::Time::now() << ","  << message.D_fil << "," << message.P_fil << "," << message.Xcm_fil << "," << message.Ycm_fil << std::endl;
+//		filtered_readings_file.flush();
+//	}
+//}
 
 
 int main(int argc, char** argv) {
@@ -62,19 +62,19 @@ int main(int argc, char** argv) {
     if (tcsetattr(serial_port, TCSANOW, &tty) != 0) {//get parameters associated with the object in serial_port, stores in termios struct, returns 0 on success
         ROS_INFO("Error setting attributes from file descriptor to termios struct");
     }
-    nh.param("log_uwb_readings", log_uwb_readings, false);//if not set, default to FALSE
-    std::string log_readings_path;
-	std::string log_filtered_readings_path;
-    std::ofstream output_file;//the file we want to store the UWB readings in
-    if (log_uwb_readings) {
-        nh.getParam("log_readings_path", log_readings_path);
-        nh.getParam("log_filtered_readings_path", log_filtered_readings_path);
-        ROS_INFO("UWB reading logging enabled for follower, output to %s and %s", log_readings_path.c_str(), log_filtered_readings_path.c_str());
-        readings_file.open(log_readings_path.c_str());
-        filtered_readings_file.open(log_filtered_readings_path.c_str());
-    }
-	ros::Subscriber reading_sub = nh.subscribe<follower::uwb_node_reading>("uwb_node_reading", 100, logReading);
-	ros::Subscriber filtered_sub = nh.subscribe<follower::filtered_reading>("filtered_reading", 100, logFilteredReading);
+    //nh.param("log_uwb_readings", log_uwb_readings, false);//if not set, default to FALSE
+    //std::string log_readings_path;
+	//std::string log_filtered_readings_path;
+    //std::ofstream output_file;//the file we want to store the UWB readings in
+    //if (log_uwb_readings) {
+    //    nh.getParam("log_readings_path", log_readings_path);
+    //    nh.getParam("log_filtered_readings_path", log_filtered_readings_path);
+    //    ROS_INFO("UWB reading logging enabled for follower, output to %s and %s", log_readings_path.c_str(), log_filtered_readings_path.c_str());
+    //    readings_file.open(log_readings_path.c_str());
+    //    filtered_readings_file.open(log_filtered_readings_path.c_str());
+    //}
+	//ros::Subscriber reading_sub = nh.subscribe<follower::uwb_node_reading>("uwb_node_reading", 100, logReading);
+	//ros::Subscriber filtered_sub = nh.subscribe<follower::filtered_reading>("filtered_reading", 100, logFilteredReading);
     char read_buf[256];//buffer to store what we read from the serial port (assume each line less than 256 chars)
     int n = 0;//number of bytes read from the serial port (1 char is 1 byte)
     n = read(serial_port, &read_buf, sizeof(read_buf)); //read the first (usually bugged) line to discard

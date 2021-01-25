@@ -1,6 +1,10 @@
 <?xml version="1.0"?>
 <launch>
-    <!-- This combination of nodes is needed for the simulation of the leader.-->
-    <!-- The only node is mavros_direct_offboard to switch to offboard mode and take off.-->
-    <node pkg="leader" type="mavros_sim_offboard" name="mavros_sim_offboard" output="screen"/>
+  <!-- This combination of nodes is needed for the simulation of the leader.-->
+  <!-- The only node is mavros_direct_offboard to switch to offboard mode and take off.-->
+  <node pkg="leader" type="mavros_direct_offboard" name="mavros_direct_offboard" output="screen"/>
+  <node pkg="follower" type="mavros_takeoff_land" name="mavros_takeoff_land" output="screen"/>
+  <!-- node pkg="leader" type="mavros_sim_offboard" name="mavros_sim_offboard" output="screen"/ -->
+  <!-- LOAD LEADER PARAMETER FILES (WITHIN LEADER NAMESPACE) -->
+  <rosparam command="load" file="param/sim_leader_params.yaml"/>
 </launch>

@@ -1,5 +1,6 @@
 //This is an ACTUAL FLIGHT ONLY node to demonstrate sending offboard commands to the PX4 in Gazebo to control the leader's flight.
 #include "ros/ros.h" //all headers necessary for ROS functions
+#include "ros/package.h"
 #include <mavros_msgs/CommandBool.h>//following header files define the ROS message objects in respective namespaces
 #include <mavros_msgs/SetMode.h>
 #include <mavros_msgs/State.h>
@@ -38,7 +39,11 @@ int main(int argc, char** argv) {
 	std::vector<waypoint> waypoints;
 	std::ifstream waypoints_file;
 	if (followingWaypoints) {
-		waypoints_file.open("../UWBFYP/data/waypoints.txt");
+		std::string waypoints_file_path;
+        nh.getParam("waypoints_file_path", waypoints_file_path);
+		waypoints_file_path = ros::package::getPath("leader") + "/../.." + waypoints_file_path;
+		waypoints_file.open(waypoints_file_path.c_str());
+		ROS_INFO("Reading from file path: %s", waypoints_file_path.c_str());
 		char line[256];
 		while (waypoints_file.getline(line, 256)) {
 			char* p;

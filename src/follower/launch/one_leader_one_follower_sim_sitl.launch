@@ -26,7 +26,7 @@
         <arg name="fcu_url" default="udp://:14540@localhost:14580"/>
         <!-- PX4 SITL and vehicle spawn -->
         <include file="$(find px4)/launch/single_vehicle_spawn.launch">
-            <arg name="x" value="0"/>
+            <arg name="x" value="2"/>
             <arg name="y" value="0"/>
             <arg name="z" value="0"/>
             <arg name="R" value="0"/>
@@ -44,8 +44,6 @@
             <arg name="tgt_system" value="$(eval 1 + arg('ID'))"/>
             <arg name="tgt_component" value="1"/>
     	</include>
-		<!-- LOAD LEADER PARAMETER FILES (WITHIN LEADER NAMESPACE) -->
-		<rosparam command="load" file="param/sim_leader_params.yaml"/>
 		<!-- LAUNCH THE LEADER NODES NEEDED FOR SIMULATION -->
     	<include file="$(find leader)/launch/sim_leader.launch"/>
     </group>
@@ -57,7 +55,7 @@
         <!-- PX4 SITL and vehicle spawn -->
         <include file="$(find px4)/launch/single_vehicle_spawn.launch">
             <arg name="x" value="0"/>
-            <arg name="y" value="-1"/>
+            <arg name="y" value="0"/>
             <arg name="z" value="0"/>
             <arg name="R" value="0"/>
             <arg name="P" value="0"/>
@@ -74,8 +72,6 @@
             <arg name="tgt_system" value="$(eval 1 + arg('ID'))"/>
             <arg name="tgt_component" value="1"/>
         </include>
-		<!-- LOAD FOLLOWER PARAMETER FILES (WITHIN FOLLOWER NAMESPACE) -->
-		<rosparam command="load" file="param/sim_follower_params.yaml"/>
     	<!-- LAUNCH THE FOLLOWER NODES NEEDED FOR SIMULATION -->
     	<include file="$(find follower)/launch/sim_follower.launch"/>
     </group>
@@ -83,7 +79,7 @@
 	<rosparam command="load" file="param/sim_overall_params.yaml"/>
 	<!-- note that the uwb_simulator and position logger must be outside of the namespace to access the correct gazebo topics -->
 	<node pkg="follower" type="uwb_simulator" name="simulator" output="screen"/>
-	<node pkg="follower" type="position_logger" name="position_logger" output="screen"/>
+	<node pkg="follower" type="sim_logger" name="sim_logger" output="screen"/>
 </launch>
 <!-- to add more UAVs (up to 10):
 Increase the id

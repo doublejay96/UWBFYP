@@ -8,6 +8,7 @@
 #include "follower/flight_status.h"//defines the flight_status object, in 'follower' namespace
 #include "follower/filtered_reading.h"//defines the filtered_reading object
 #include "follower/PID_error.h"
+#include "follower/sim_altitude.h"
 #include <fstream>
 #include <iostream>
 
@@ -35,6 +36,9 @@ void flightStatusReceivedCallback(const follower::flight_status message) {
 void altitudeCallback(const geometry_msgs::PoseStamped message) {
 	z_error = desired_z - message.pose.position.z;
 }
+void simAltitudeCallback(const follower::sim_altitude message) {
+	z_error = desired_z - message.altitude;
+}
 
 int main(int argc, char** argv) {
 	ros::init(argc, argv, "mavros_offboard");//initialise the node, name it "mavros_offboard"  
@@ -42,6 +46,7 @@ int main(int argc, char** argv) {
 	ros::Subscriber filtered_sub = nh.subscribe<follower::filtered_reading>("filtered_reading", 1000, filteredReadingReceivedCallback);//subscribe to the filtered readings published by the ma_filter node
 	ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>("mavros/state", 10, state_cb);
 	ros::Subscriber altitude_sub = nh.subscribe<geometry_msgs::PoseStamped>("mavros/vision_pose/pose", 100, altitudeCallback);
+	ros::Subscriber sim_altitude_sub = nh.subscribe<follower::sim_altitude>("sim_altitude", 100, simAltitudeCallback);
 	ros::Publisher target_pos_pub = nh.advertise<mavros_msgs::PositionTarget>("mavros/setpoint_raw/local", 100);
 	ros::Subscriber flight_status_sub = nh.subscribe<follower::flight_status>("flight_status", 10, flightStatusReceivedCallback);
 	ros::Publisher PID_error_pub = nh.advertise<follower::PID_error>("PID_error", 100);
@@ -103,18 +108,18 @@ int main(int argc, char** argv) {
 		nh.setParam("PID_Kd_z", Kd_z);
 		ROS_INFO("Using own PID constants, Kp_z: %f, Ki_z: %f, Kd_z: %f", Kp_z, Ki_z, Kd_z);
 	}
-	//Create PID_error publishing message
+	//Create PID_error publishing message for the super_logger
 	follower::PID_error PID_error_message;
-	bool log_errors = false;//whether to log the errors in the PID controller or not
-	std::string log_errors_path;
-	std::ofstream output_file;
-	nh.param("log_errors", log_errors, false);//if parameter not set, default to FALSE, dont log errors
-	if (log_errors) {
-		nh.getParam("log_errors_path", log_errors_path);
-		ROS_INFO("PID position error logging enabled for follower, output to %s", log_errors_path.c_str());
-		output_file.open(log_errors_path.c_str());
-		output_file << Kp_x << "," << Ki_x << "," << Kd_x << "," << Kp_y << "," << Ki_y << "," << Kd_y << "," << Kp_z << "," << Ki_z << "," << Kd_z << std::endl;
-	}
+	//bool log_errors = false;//whether to log the errors in the PID controller or not
+	//std::string log_errors_path;
+	//std::ofstream output_file;
+	//nh.param("log_errors", log_errors, false);//if parameter not set, default to FALSE, dont log errors
+	//if (log_errors) {
+	//	nh.getParam("log_errors_path", log_errors_path);
+	//	ROS_INFO("PID position error logging enabled for follower, output to %s", log_errors_path.c_str());
+	//	output_file.open(log_errors_path.c_str());
+	//	output_file << Kp_x << "," << Ki_x << "," << Kd_x << "," << Kp_y << "," << Ki_y << "," << Kd_y << "," << Kp_z << "," << Ki_z << "," << Kd_z << std::endl;
+	//}
 	while (ros::ok() && current_state.connected) {//begin PID controller
 		if (flightStage == 3) break;
 		x_error = (Ycm - Y_offset)/100;//calculate error in X, convert to m
@@ -136,7 +141,7 @@ int main(int argc, char** argv) {
 		//	positionTarget.velocity.y = 0;
 		//}
 		if (flightStage == 2) target_pos_pub.publish(positionTarget);
-		if (log_errors) output_file << ros::Time::now() << "," << x_error << "," << y_error << "," << z_error << std::endl;
+		//if (log_errors) output_file << ros::Time::now() << "," << x_error << "," << y_error << "," << z_error << std::endl;
 		//ROS_INFO("For x, P: %f, I: %Lf, D:%f, output velocity: %f", x_error, integral_x, derivative_x, positionTarget.velocity.x);
 		//ROS_INFO("For y, P: %f, I: %Lf, D:%f, output velocity: %f", y_error, integral_y, derivative_y, positionTarget.velocity.y);
 		//ROS_INFO("For z, P: %f, I: %Lf, D:%f, output velocity: %f", z_error, integral_z, derivative_z, positionTarget.velocity.z);
@@ -151,6 +156,6 @@ int main(int argc, char** argv) {
 		rate.sleep();
 	}
 	ROS_INFO("Flight stage is now %d, the mavros_offboard node is exiting now", flightStage);
-	output_file.close();
+	//output_file.close();
 	return 0;
 }

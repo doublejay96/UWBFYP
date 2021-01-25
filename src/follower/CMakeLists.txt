@@ -57,6 +57,7 @@ add_message_files(
   filtered_reading.msg
   flight_status.msg
   PID_error.msg
+  sim_altitude.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -150,6 +151,9 @@ add_dependencies(mavros_offboard_simple follower_generate_messages_cpp)
 add_executable(mavros_offboard_PID src/mavros_offboard_PID.cpp)
 target_link_libraries(mavros_offboard_PID ${catkin_LIBRARIES})
 add_dependencies(mavros_offboard_PID follower_generate_messages_cpp)
+add_executable(mavros_offboard_LQR src/mavros_offboard_LQR.cpp)
+target_link_libraries(mavros_offboard_LQR ${catkin_LIBRARIES})
+add_dependencies(mavros_offboard_LQR follower_generate_messages_cpp)
 add_executable(mavros_takeoff_land src/mavros_takeoff_land.cpp)
 target_link_libraries(mavros_takeoff_land ${catkin_LIBRARIES})
 add_dependencies(mavros_takeoff_land follower_generate_messages_cpp)
@@ -158,11 +162,15 @@ target_link_libraries(position_logger ${catkin_LIBRARIES})
 add_executable(super_logger src/super_logger.cpp)
 target_link_libraries(super_logger ${catkin_LIBRARIES})
 add_dependencies(super_logger follower_generate_messages_cpp)
+add_executable(sim_logger src/sim_logger.cpp)
+target_link_libraries(sim_logger ${catkin_LIBRARIES})
+add_dependencies(sim_logger follower_generate_messages_cpp)
 
 add_executable(mavros_example src/mavros_example.cpp)
 target_link_libraries(mavros_example ${catkin_LIBRARIES})
 add_executable(uwb_simulator src/uwb_simulator.cpp)
 target_link_libraries(uwb_simulator ${catkin_LIBRARIES})
+add_dependencies(uwb_simulator follower_generate_messages_cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the

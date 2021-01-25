@@ -1,7 +1,10 @@
 <?xml version="1.0"?>
 <launch>
-    <!-- This combination of nodes is needed for the simulation. uwb_node_reader is replaced by uwb_simulator. mavros_node is already run elsewhere in the mavros px4.launch -->
-    <node pkg="follower" type="ma_filter" name="ma_filter" output="screen"/>
-    <node pkg="follower" type="mavros_takeoff_land" name="mavros_takeoff_land" output="screen"/>
-	<node pkg="follower" type="mavros_offboard_PID" name="mavros_offboard_PID" output="screen"/>
+  <!-- This combination of nodes is needed for the simulation. uwb_node_reader is replaced by uwb_simulator. mavros_node is already run elsewhere in the mavros px4.launch -->
+  <node pkg="follower" type="ma_filter" name="ma_filter" output="screen"/>
+  <node pkg="follower" type="mavros_takeoff_land" name="mavros_takeoff_land" output="screen"/>
+  <node pkg="follower" type="mavros_offboard_PID" name="mavros_offboard_PID" output="screen"/>
+  <!-- note: mavros_node is launched in the upper-level launch file -->
+  <!-- LOAD FOLLOWER PARAMETER FILES (WITHIN FOLLOWER NAMESPACE) -->
+  <rosparam command="load" file="param/sim_follower_params.yaml"/>
 </launch>

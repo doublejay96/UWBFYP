@@ -51,8 +51,6 @@
         <arg name="fcu_url" value="$(arg fcu_url)"/>
         <arg name="respawn_mavros" value="$(arg respawn_mavros)"/>
     </include>
-	<!-- LOAD LEADER PARAMETER FILES (WITHIN LEADER NAMESPACE) -->
-    <rosparam command="load" file="param/sim_leader_params.yaml"/>
     <param name="model_name" value="$(arg vehicle)"/>
 	<include file="$(find leader)/launch/sim_leader.launch"/>
 </launch>

@@ -61,6 +61,7 @@ cd PX4-Autopilot/
 git submodule update --init --recursive
 DONT_RUN=1 make px4_sitl_default gazebo
 
+##RUN THESE IN THE TERMINAL BEFORE ROSLAUNCHING THE SIMULATION (too annoying to add to .bashrc)
 source Tools/setup_gazebo.bash $(pwd) $(pwd)/build/px4_sitl_default
 export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:$(pwd):$(pwd)/Tools/sitl_gazebo
 
@@ -90,3 +91,11 @@ git clone https://github.com/ros-drivers/vrpn_client_ros.git
 cd ..
 catkin_make
 #Add "source ~/vicon/devel/setup.bash" to ~/.bashrc" as well.#
+
+##Installation of Eigen
+sudo apt install libeigen3-dev
+#This installs eigen3 into /usr/include which should be found by the standard include search, however the folder there is eigen3 and Eigen is further subnested.
+cd /usr/include
+sudo ln -sf eigen3/Eigen Eigen
+sudo ln -sf eigen3/unsupported unsupported
+#Symlink to ensure compiler correctly finds Eigen

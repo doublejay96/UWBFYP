@@ -1,4 +1,4 @@
-//This ROS node reads the filtered UWB readings, converts that into appropriate offboard commands in velocity using the PID controller, and sends it to the mavros_node node by publishing to 'mavros/setpoint_raw/local' topic. It is always calculating, but only starts sending offboard commands when the 'flight_status' topic lets it know that the previous mavros_takeoff node is done.
+//This ROS node reads the filtered UWB readings, converts that into appropriate offboard commands in velocity using the LQR controller, and sends it to the mavros_node node by publishing to 'mavros/setpoint_raw/local' topic. It is always calculating, but only starts sending offboard commands when the 'flight_status' topic lets it know that the previous mavros_takeoff node is done.
 #include "ros/ros.h" //all headers necessary for ROS functions
 #include <mavros_msgs/CommandBool.h>//following header files define the ROS message objects in respective namespaces
 #include <mavros_msgs/SetMode.h>
@@ -10,6 +10,7 @@
 #include "follower/PID_error.h"
 #include <fstream>
 #include <iostream>
+#include <Eigen/Dense>
 
 mavros_msgs::State current_state;//global var to monitor the current state (of the connection)
 uint8_t flightStage = 0;//the current flight status, to activate the sending of offboard commands
@@ -37,7 +38,7 @@ void altitudeCallback(const geometry_msgs::PoseStamped message) {
 }
 
 int main(int argc, char** argv) {
-	ros::init(argc, argv, "mavros_offboard");//initialise the node, name it "mavros_offboard"  
+	ros::init(argc, argv, "mavros_offboard_LQR");//initialise the node, name it "mavros_offboard_LQR"  
 	ros::NodeHandle nh; //construct the first NodeHandle to fully initialise, handle contains communication fns
 	ros::Subscriber filtered_sub = nh.subscribe<follower::filtered_reading>("filtered_reading", 1000, filteredReadingReceivedCallback);//subscribe to the filtered readings published by the ma_filter node
 	ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>("mavros/state", 10, state_cb);
