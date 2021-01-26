@@ -1,6 +1,4 @@
-*.csv
 *.swp
 build/
 devel/
 logs/
-data/
