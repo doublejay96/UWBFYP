@@ -2,6 +2,9 @@ is_leader: false
 super_logger: true
 super_logger_path: "/logs/super_logs.csv"
 super_logger_constants_path: "/logs/PID_constants.txt"
+use_controller: 1
+SSmodel_path: "/data/state_space_model_sim.csv"
+QR_path: "/data/Q_R_sim.csv"
 override_PID_constants: true
 PID_Kp_x: 0.3
 PID_Ki_x: 0.02

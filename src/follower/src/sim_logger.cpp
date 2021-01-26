@@ -5,7 +5,7 @@
 #include "follower/uwb_node_reading.h"//defines the uwb_node_reading object, in 'follower' namespace
 #include "follower/filtered_reading.h"
 #include "follower/flight_status.h"
-#include "follower/PID_error.h"
+#include "follower/state_error.h"
 #include <geometry_msgs/PoseStamped.h>
 #include <mavros_msgs/PositionTarget.h>
 #include <gazebo_msgs/GetModelState.h>
@@ -19,7 +19,7 @@ double gazebo_L_x_pos = -1.0, gazebo_L_y_pos = -1.0, gazebo_L_z_pos = -1.0;
 int UWB_Xcm = -1, UWB_Ycm = -1;
 float avg_Xcm = -1.0, avg_Ycm = -1.0;
 int flightStage = -1;
-double PID_x_error = -1.0, PID_y_error = -1.0, PID_z_error = -1.0;
+double state_x_error = -1.0, state_y_error = -1.0, state_z_error = -1.0;
 double offb_x_vel = -1.0, offb_y_vel = -1.0, offb_z_vel = -1.0;
 //Callbacks for the global variables
 void logUWBNodeReading (const follower::uwb_node_reading message) {
@@ -33,10 +33,10 @@ void logFilteredReading (const follower::filtered_reading message) {
 void logFlightStatus (const follower::flight_status message) {
 	flightStage = message.stage;
 }
-void logPIDError (const follower::PID_error message) {
-	PID_x_error = message.x_error;
-	PID_y_error = message.y_error;
-	PID_z_error = message.z_error;
+void logStateError (const follower::state_error message) {
+	state_x_error = message.x_error;
+	state_y_error = message.y_error;
+	state_z_error = message.z_error;
 }
 void logOffbVel (const mavros_msgs::PositionTarget message) {
 	offb_x_vel = message.velocity.x;
@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
 	nh.getParam("follower1/super_logger_path", super_logger_path);
 	super_logger_path = ros::package::getPath("follower") + "/../.." + super_logger_path;
 	super_logger_file.open(super_logger_path.c_str());
-	super_logger_file << "Time (s), Gazebo_follower_X_pos (m), Gazebo_follower_Y_pos (m), Gazebo_follower_Z_pos (m), Gazebo_leader_X_pos (m), Gazebo_leader_Y_pos (m), Gazebo_leader_Z_pos (m), UWB_Xcm, UWB_Ycm, avg_Xcm, avg_Ycm, flightStage, PID_x_error (m), PID_y_error (m), PID_z_error (m), Offb_x_vel (m/s), Offb_y_vel (m/s), Offb_z_vel (m/s)" << std::endl;
+	super_logger_file << "Time (s), Gazebo_follower_X_pos (m), Gazebo_follower_Y_pos (m), Gazebo_follower_Z_pos (m), Gazebo_leader_X_pos (m), Gazebo_leader_Y_pos (m), Gazebo_leader_Z_pos (m), UWB_Xcm, UWB_Ycm, avg_Xcm, avg_Ycm, flightStage, state_x_error (m), state_y_error (m), state_z_error (m), Offb_x_vel (m/s), Offb_y_vel (m/s), Offb_z_vel (m/s)" << std::endl;
 	//Create the Gazebo services
 	ros::ServiceClient model_state_client = nh.serviceClient<gazebo_msgs::GetModelState>("gazebo/get_model_state");
 	gazebo_msgs::GetModelState leader_state;
@@ -95,7 +95,7 @@ int main(int argc, char** argv) {
 	ros::Subscriber reading_sub = nh.subscribe<follower::uwb_node_reading>("follower1/uwb_node_reading", 100, logUWBNodeReading);
 	ros::Subscriber filtered_sub = nh.subscribe<follower::filtered_reading>("follower1/filtered_reading", 100, logFilteredReading);
 	ros::Subscriber flight_status_sub = nh.subscribe<follower::flight_status>("follower1/flight_status", 10, logFlightStatus);
-	ros::Subscriber PID_error_sub = nh.subscribe<follower::PID_error>("follower1/PID_error", 100, logPIDError);
+	ros::Subscriber state_error_sub = nh.subscribe<follower::state_error>("follower1/state_error", 100, logStateError);
 	ros::Subscriber offb_vel_sub = nh.subscribe<mavros_msgs::PositionTarget>("follower1/mavros/setpoint_raw/local", 100, logOffbVel);
 	ros::Time start = ros::Time::now();//define this as a starting point in time
 	while (ros::ok()) {
@@ -116,7 +116,7 @@ int main(int argc, char** argv) {
 			super_logger_file << UWB_Xcm << "," << UWB_Ycm << ",";
 			super_logger_file << avg_Xcm << "," << avg_Ycm << ",";
 			super_logger_file << flightStage << ",";
-			super_logger_file << PID_x_error << "," << PID_y_error << "," << PID_z_error << ",";
+			super_logger_file << state_x_error << "," << state_y_error << "," << state_z_error << ",";
 			super_logger_file << offb_x_vel << "," << offb_y_vel << "," << offb_z_vel;
 			super_logger_file << std::endl;//all of the above is one line
 			super_logger_file.flush();//ensure it is written not buffered

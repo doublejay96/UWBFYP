@@ -7,7 +7,7 @@
 #include <geometry_msgs/PoseStamped.h>//for listening to vision_pose/pose topic
 #include "follower/flight_status.h"//defines the flight_status object, in 'follower' namespace
 #include "follower/filtered_reading.h"//defines the filtered_reading object
-#include "follower/PID_error.h"
+#include "follower/state_error.h"
 #include "follower/sim_altitude.h"
 #include <fstream>
 #include <iostream>
@@ -43,13 +43,21 @@ void simAltitudeCallback(const follower::sim_altitude message) {
 int main(int argc, char** argv) {
 	ros::init(argc, argv, "mavros_offboard");//initialise the node, name it "mavros_offboard"  
 	ros::NodeHandle nh; //construct the first NodeHandle to fully initialise, handle contains communication fns
+    int use_controller = 0;
+    nh.param("use_controller", use_controller, 0);//if not set, default to 0 (PID)
+    if (use_controller != 0) {
+        ROS_INFO("Not using PID controller");
+        return 0;//exit the node immediately
+    } else {
+        ROS_INFO("Using PID controller");
+    }
 	ros::Subscriber filtered_sub = nh.subscribe<follower::filtered_reading>("filtered_reading", 1000, filteredReadingReceivedCallback);//subscribe to the filtered readings published by the ma_filter node
 	ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>("mavros/state", 10, state_cb);
 	ros::Subscriber altitude_sub = nh.subscribe<geometry_msgs::PoseStamped>("mavros/vision_pose/pose", 100, altitudeCallback);
 	ros::Subscriber sim_altitude_sub = nh.subscribe<follower::sim_altitude>("sim_altitude", 100, simAltitudeCallback);
 	ros::Publisher target_pos_pub = nh.advertise<mavros_msgs::PositionTarget>("mavros/setpoint_raw/local", 100);
 	ros::Subscriber flight_status_sub = nh.subscribe<follower::flight_status>("flight_status", 10, flightStatusReceivedCallback);
-	ros::Publisher PID_error_pub = nh.advertise<follower::PID_error>("PID_error", 100);
+	ros::Publisher state_error_pub = nh.advertise<follower::state_error>("state_error", 100);
 	ros::Rate rate(10.0); //setpoint publishing rate MUST be faster than 2 Hz
 	bool override_desired_offsets = false;
 	nh.param("override_desired_offsets", override_desired_offsets, false);//if parameter not set, default to FALSE, use the original values specified above
@@ -58,15 +66,6 @@ int main(int argc, char** argv) {
 		nh.getParam("Y_offset", Y_offset);
 		ROS_INFO("Follower offset override: set to X_offset %f, Y_offset %f", X_offset, Y_offset);
 	}
-	while (flightStage != 2) {//while the quadcopter hasn't reached flight stage 2 (still connecting or taking off)
-		ros::spinOnce(); //call any callbacks waiting
-		rate.sleep();
-	}
-	mavros_msgs::PositionTarget positionTarget;//This is the setpoint we want to move to
-	positionTarget.coordinate_frame = 8;//Set the reference frame of the command to body (FLU) frame
-	//positionTarget.type_mask = 0b110111111000;//set positions only, 3576
-	positionTarget.type_mask = 0b101111000111;//set velocities only, 3527
-	positionTarget.yaw = 0;
 	//PID Controller. Consider x and y separately (assume no yaw)
 	float x_error = 0;//the error value for that instant 
 	float y_error = 0;
@@ -108,18 +107,17 @@ int main(int argc, char** argv) {
 		nh.setParam("PID_Kd_z", Kd_z);
 		ROS_INFO("Using own PID constants, Kp_z: %f, Ki_z: %f, Kd_z: %f", Kp_z, Ki_z, Kd_z);
 	}
-	//Create PID_error publishing message for the super_logger
-	follower::PID_error PID_error_message;
-	//bool log_errors = false;//whether to log the errors in the PID controller or not
-	//std::string log_errors_path;
-	//std::ofstream output_file;
-	//nh.param("log_errors", log_errors, false);//if parameter not set, default to FALSE, dont log errors
-	//if (log_errors) {
-	//	nh.getParam("log_errors_path", log_errors_path);
-	//	ROS_INFO("PID position error logging enabled for follower, output to %s", log_errors_path.c_str());
-	//	output_file.open(log_errors_path.c_str());
-	//	output_file << Kp_x << "," << Ki_x << "," << Kd_x << "," << Kp_y << "," << Ki_y << "," << Kd_y << "," << Kp_z << "," << Ki_z << "," << Kd_z << std::endl;
-	//}
+	//Create state_error publishing message for the super_logger
+	follower::state_error state_error_message;
+	while (flightStage != 2) {//while the quadcopter hasn't reached flight stage 2 (still connecting or taking off)
+		ros::spinOnce(); //call any callbacks waiting
+		rate.sleep();
+	}
+	mavros_msgs::PositionTarget positionTarget;//This is the setpoint we want to move to
+	positionTarget.coordinate_frame = 8;//Set the reference frame of the command to body (FLU) frame
+	//positionTarget.type_mask = 0b110111111000;//set positions only, 3576
+	positionTarget.type_mask = 0b101111000111;//set velocities only, 3527
+	positionTarget.yaw = 0;//yaw locked to 0 (absolute values accepted)
 	while (ros::ok() && current_state.connected) {//begin PID controller
 		if (flightStage == 3) break;
 		x_error = (Ycm - Y_offset)/100;//calculate error in X, convert to m
@@ -134,6 +132,7 @@ int main(int argc, char** argv) {
 		positionTarget.velocity.x = (Kp_x * x_error) + (Ki_x * integral_x) + (Kd_x * derivative_x);//combine P,I,D terms to get the output control var
 		positionTarget.velocity.y = (Kp_y * y_error) + (Ki_y * integral_y) + (Kd_y * derivative_y);
 		positionTarget.velocity.z = (Kp_z * z_error) + (Ki_z * integral_z) + (Kd_z * derivative_z);
+		//Implement 'dead zone' in which no velocity commands are given
 		//if (x_error < 0.1 && x_error > -0.1) {
 		//	positionTarget.velocity.x = 0;
 		//}
@@ -141,21 +140,19 @@ int main(int argc, char** argv) {
 		//	positionTarget.velocity.y = 0;
 		//}
 		if (flightStage == 2) target_pos_pub.publish(positionTarget);
-		//if (log_errors) output_file << ros::Time::now() << "," << x_error << "," << y_error << "," << z_error << std::endl;
 		//ROS_INFO("For x, P: %f, I: %Lf, D:%f, output velocity: %f", x_error, integral_x, derivative_x, positionTarget.velocity.x);
 		//ROS_INFO("For y, P: %f, I: %Lf, D:%f, output velocity: %f", y_error, integral_y, derivative_y, positionTarget.velocity.y);
 		//ROS_INFO("For z, P: %f, I: %Lf, D:%f, output velocity: %f", z_error, integral_z, derivative_z, positionTarget.velocity.z);
 		prev_x_error = x_error;//store the error value for the next loop
 		prev_y_error = y_error;
 		prev_z_error = z_error;
-		PID_error_message.x_error = x_error;
-		PID_error_message.y_error = y_error;
-		PID_error_message.z_error = z_error;
-		PID_error_pub.publish(PID_error_message);
+		state_error_message.x_error = x_error;
+		state_error_message.y_error = y_error;
+		state_error_message.z_error = z_error;
+		state_error_pub.publish(state_error_message);
 		ros::spinOnce(); //call any callbacks waiting
 		rate.sleep();
 	}
-	ROS_INFO("Flight stage is now %d, the mavros_offboard node is exiting now", flightStage);
-	//output_file.close();
+	ROS_INFO("Flight stage is now %d, the mavros_offboard_PID node is exiting now", flightStage);
 	return 0;
 }

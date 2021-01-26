@@ -56,7 +56,7 @@ add_message_files(
   uwb_node_reading.msg
   filtered_reading.msg
   flight_status.msg
-  PID_error.msg
+  state_error.msg
   sim_altitude.msg
 )
 
