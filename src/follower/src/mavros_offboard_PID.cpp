@@ -43,19 +43,22 @@ void simAltitudeCallback(const follower::sim_altitude message) {
 int main(int argc, char** argv) {
 	ros::init(argc, argv, "mavros_offboard");//initialise the node, name it "mavros_offboard"  
 	ros::NodeHandle nh; //construct the first NodeHandle to fully initialise, handle contains communication fns
-    int use_controller = 0;
-    nh.param("use_controller", use_controller, 0);//if not set, default to 0 (PID)
-    if (use_controller != 0) {
+    int use_PID_controller = 0;
+    nh.param("use_PID_controller", use_PID_controller, 0);//if not set, default to 0 (disabled)
+    if (use_PID_controller == 0) {
         ROS_INFO("Not using PID controller");
         return 0;//exit the node immediately
-    } else {
+    } else if (use_PID_controller == 1) {
         ROS_INFO("Using PID controller");
-    }
+    } else if (use_PID_controller == 2) {
+		ROS_INFO("Using PID controller in dummy mode");
+	}
 	ros::Subscriber filtered_sub = nh.subscribe<follower::filtered_reading>("filtered_reading", 1000, filteredReadingReceivedCallback);//subscribe to the filtered readings published by the ma_filter node
 	ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>("mavros/state", 10, state_cb);
 	ros::Subscriber altitude_sub = nh.subscribe<geometry_msgs::PoseStamped>("mavros/vision_pose/pose", 100, altitudeCallback);
 	ros::Subscriber sim_altitude_sub = nh.subscribe<follower::sim_altitude>("sim_altitude", 100, simAltitudeCallback);
 	ros::Publisher target_pos_pub = nh.advertise<mavros_msgs::PositionTarget>("mavros/setpoint_raw/local", 100);
+	ros::Publisher dummy_target_pos_pub = nh.advertise<mavros_msgs::PositionTarget>("dummy/PID", 100);
 	ros::Subscriber flight_status_sub = nh.subscribe<follower::flight_status>("flight_status", 10, flightStatusReceivedCallback);
 	ros::Publisher state_error_pub = nh.advertise<follower::state_error>("state_error", 100);
 	ros::Rate rate(10.0); //setpoint publishing rate MUST be faster than 2 Hz
@@ -133,13 +136,19 @@ int main(int argc, char** argv) {
 		positionTarget.velocity.y = (Kp_y * y_error) + (Ki_y * integral_y) + (Kd_y * derivative_y);
 		positionTarget.velocity.z = (Kp_z * z_error) + (Ki_z * integral_z) + (Kd_z * derivative_z);
 		//Implement 'dead zone' in which no velocity commands are given
-		//if (x_error < 0.1 && x_error > -0.1) {
-		//	positionTarget.velocity.x = 0;
-		//}
-		//if (y_error < 0.1 && y_error > -0.1) {
-		//	positionTarget.velocity.y = 0;
-		//}
-		if (flightStage == 2) target_pos_pub.publish(positionTarget);
+		if (x_error < 0.1 && x_error > -0.1) {
+			positionTarget.velocity.x = 0;
+		}
+		if (y_error < 0.1 && y_error > -0.1) {
+			positionTarget.velocity.y = 0;
+		}
+		if (flightStage == 2) {
+			if (use_PID_controller == 1) {
+				target_pos_pub.publish(positionTarget);
+			} else if (use_PID_controller == 2) {
+				dummy_target_pos_pub.publish(positionTarget);
+			}
+		}
 		//ROS_INFO("For x, P: %f, I: %Lf, D:%f, output velocity: %f", x_error, integral_x, derivative_x, positionTarget.velocity.x);
 		//ROS_INFO("For y, P: %f, I: %Lf, D:%f, output velocity: %f", y_error, integral_y, derivative_y, positionTarget.velocity.y);
 		//ROS_INFO("For z, P: %f, I: %Lf, D:%f, output velocity: %f", z_error, integral_z, derivative_z, positionTarget.velocity.z);

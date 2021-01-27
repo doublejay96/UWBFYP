@@ -24,6 +24,8 @@ float avg_Xcm = -1.0, avg_Ycm = -1.0;
 int flightStage = -1;
 float state_x_error = -1.0, state_y_error = -1.0, state_z_error = -1.0;
 float offb_x_vel = -1.0, offb_y_vel = -1.0, offb_z_vel = -1.0;
+float dummy_PID_x_vel = -1.0, dummy_PID_y_vel = -1.0, dummy_PID_z_vel = -1.0;
+float dummy_LQR_x_vel = -1.0, dummy_LQR_y_vel = -1.0, dummy_LQR_z_vel = -1.0;
 //Callbacks for the global variables
 void logFollowerViconPos (const geometry_msgs::PoseStamped message) {
 	vicon_F_x_pos = message.pose.position.x;
@@ -56,6 +58,16 @@ void logOffbVel (const mavros_msgs::PositionTarget message) {
 	offb_y_vel = message.velocity.y;
 	offb_z_vel = message.velocity.z;
 }
+void logDummyPID (const mavros_msgs::PositionTarget message) {
+	dummy_PID_x_vel = message.velocity.x;
+	dummy_PID_y_vel = message.velocity.y;
+	dummy_PID_z_vel = message.velocity.z;
+}
+void logDummyLQR (const mavros_msgs::PositionTarget message) {
+	dummy_LQR_x_vel = message.velocity.x;
+	dummy_LQR_y_vel = message.velocity.y;
+	dummy_LQR_z_vel = message.velocity.z;
+}
 
 int main(int argc, char** argv) {
 	ros::init(argc, argv, "super_logger");//initialise the node, name it "super_logger"
@@ -69,9 +81,17 @@ int main(int argc, char** argv) {
 	} else {
 		ROS_INFO("Super logger enabled");
 	}
-	int use_controller = 0;
-	nh.param("use_controller", use_controller, 0);//if not set, default to 0 (PID)
-	if (use_controller == 0) {//using PID controller
+	//Check which controller is being used
+	int use_PID_controller = 0, use_LQR_controller = 0;
+	nh.param("use_PID_controller", use_PID_controller, 0);//if not set, default to 0 (disabled)
+	nh.param("use_LQR_controller", use_LQR_controller, 0);//if not set, default to 0 (disabled)
+	//Open another file to log all the controller constants
+	std::string super_logger_constants_path;
+	nh.getParam("super_logger_constants_path", super_logger_constants_path);
+	super_logger_constants_path = ros::package::getPath("follower") + "/../.." + super_logger_constants_path;
+	std::ofstream constants_file;
+	constants_file.open(super_logger_constants_path.c_str());
+	if (use_PID_controller != 0) {//using PID controller
 		bool override_PID_constants = false;
 		nh.param("override_PID_constants", override_PID_constants, false);//if not set, default to FALSE
 		if (override_PID_constants) {
@@ -85,43 +105,49 @@ int main(int argc, char** argv) {
 			nh.getParam("PID_Kp_z", Kp_z);
 			nh.getParam("PID_Ki_z", Ki_z);
 			nh.getParam("PID_Kd_z", Kd_z);
-			std::string super_logger_constants_path;
-			nh.getParam("super_logger_constants_path", super_logger_constants_path);
-			super_logger_constants_path = ros::package::getPath("follower") + "/../.." + super_logger_constants_path;
-			std::ofstream constants_file;
-			constants_file.open(super_logger_constants_path.c_str());
 			constants_file << "Kp_x: " << Kp_x << ", Ki_x: " << Ki_x << ", Kd_x: " << Kd_x << std::endl;
 			constants_file << "Kp_y: " << Kp_y << ", Ki_y: " << Ki_y << ", Kd_y: " << Kd_y << std::endl;
 			constants_file << "Kp_z: " << Kp_z << ", Ki_z: " << Ki_z << ", Kd_z: " << Kd_z << std::endl;
-			constants_file.close();
 		}
-	} else if (use_controller == 1) {//using LQR controller
-		std::string SSmodel_path = "state_space_model.csv";
-    	nh.getParam("SSmodel_path", SSmodel_path);
-    	SSmodel_path = ros::package::getPath("follower") + "/../.." + SSmodel_path;
-		int source = open(SSmodel_path.c_str(), O_RDONLY, 0);
-		std::string SSmodel_to_path = "logs/state_space_model.csv";
-		SSmodel_to_path = ros::package::getPath("follower") + "/../.." + SSmodel_to_path;
-		int dest = open(SSmodel_to_path.c_str(), O_WRONLY | O_CREAT, 0644);
-		struct stat stat_source;
-		fstat(source, &stat_source);
-		sendfile(dest, source, 0, stat_source.st_size);
-		std::string QR_path = "Q_R.csv";
-		nh.getParam("QR_path", QR_path);
-    	QR_path = ros::package::getPath("follower") + "/../.." + QR_path;
-		source = open(QR_path.c_str(), O_RDONLY, 0);
-		std::string QR_to_path = "logs/Q_R.csv";
-		QR_to_path = ros::package::getPath("follower") + "/../.." + QR_to_path;
-		dest = open(QR_to_path.c_str(), O_WRONLY | O_CREAT, 0644);
-		fstat(source, &stat_source);
-		sendfile(dest, source, 0, stat_source.st_size);
 	}
+	if (use_LQR_controller != 0) {//using LQR controller
+		//Record the state space model used
+		std::string SSmodel_path = "state_space_model.csv";
+		nh.getParam("SSmodel_path", SSmodel_path);
+		SSmodel_path = ros::package::getPath("follower") + "/../.." + SSmodel_path;
+		std::ifstream SSmodel_file;
+		SSmodel_file.open(SSmodel_path.c_str());
+		constants_file << "A, B matrices for state space model" << std::endl;
+		char line[256];
+		for (int l = 0; l < 6; l++) {
+    		SSmodel_file.getline(line, 256);
+			constants_file << line << std::endl;
+    	}
+		SSmodel_file.close();
+		//Record the Q, R values
+		float LQR_Q_x = 1, LQR_Q_y = 1, LQR_Q_z = 1, LQR_R_vx = 1, LQR_R_vy = 1, LQR_R_vz = 1;
+    	nh.getParam("LQR_Q_x", LQR_Q_x);
+		nh.getParam("LQR_Q_y", LQR_Q_y);
+		nh.getParam("LQR_Q_z", LQR_Q_z);
+		nh.getParam("LQR_R_vx", LQR_R_vx);
+		nh.getParam("LQR_R_vy", LQR_R_vy);
+		nh.getParam("LQR_R_vz", LQR_R_vz);
+		constants_file << "Q, R values (diagonal matrices) for cost matrices)" << std::endl;
+		constants_file << "LQR_Q_x: " << LQR_Q_x << ", LQR_Q_y: " << LQR_Q_y << ", LQR_Q_z: " << LQR_Q_z << std::endl;
+		constants_file << "LQR_R_vx: " << LQR_R_vx << ", LQR_R_vy: " << LQR_R_vy << ", LQR_R_vz: " << LQR_R_vz << std::endl;
+	}
+	constants_file.close();
+	//Open the actual super_logs.csv file
 	std::string super_logger_path;
 	std::ofstream super_logger_file;
 	nh.getParam("super_logger_path", super_logger_path);
 	super_logger_path = ros::package::getPath("follower") + "/../.." + super_logger_path;
 	super_logger_file.open(super_logger_path.c_str());
-	super_logger_file << "Time (s), VICON_follower_X_pos (m), VICON_follower_Y_pos (m), VICON_follower_Z_pos (m), VICON_leader_X_pos (m), VICON_leader_Y_pos (m), VICON_leader_Z_pos (m), UWB_Xcm, UWB_Ycm, avg_Xcm, avg_Ycm, flightStage, state_x_error (m), state_y_error (m), state_z_error (m), Offb_x_vel (m/s), Offb_y_vel (m/s), Offb_z_vel (m/s)" << std::endl;
+	//Write the first line of headers
+	super_logger_file << "Time (s), VICON_follower_X_pos (m), VICON_follower_Y_pos (m), VICON_follower_Z_pos (m), VICON_leader_X_pos (m), VICON_leader_Y_pos (m), VICON_leader_Z_pos (m), UWB_Xcm, UWB_Ycm, avg_Xcm, avg_Ycm, flightStage, state_x_error (m), state_y_error (m), state_z_error (m), Offb_x_vel (m/s), Offb_y_vel (m/s), Offb_z_vel (m/s)";
+	if (use_PID_controller == 2) super_logger_file << ", Dummy_PID_x_vel (m/s), Dummy_PID_y_vel (m/s), Dummy_PID_z_vel (m/s)";
+	if (use_LQR_controller == 2) super_logger_file << ", Dummy_LQR_x_vel (m/s), Dummy_LQR_y_vel (m/s), Dummy_LQR_z_vel (m/s)";
+	super_logger_file << std::endl;
 	//Create the many subscribers
 	ros::Subscriber follower_vicon_sub = nh.subscribe<geometry_msgs::PoseStamped>("mavros/vision_pose/pose", 100, logFollowerViconPos);//remapped
 	ros::Subscriber leader_vicon_sub = nh.subscribe<geometry_msgs::PoseStamped>("vrpn_client_node/UWBFYP_leader/pose", 100, logLeaderViconPos);
@@ -130,6 +156,8 @@ int main(int argc, char** argv) {
 	ros::Subscriber flight_status_sub = nh.subscribe<follower::flight_status>("flight_status", 10, logFlightStatus);
 	ros::Subscriber state_error_sub = nh.subscribe<follower::state_error>("state_error", 100, logStateError);
 	ros::Subscriber offb_vel_sub = nh.subscribe<mavros_msgs::PositionTarget>("mavros/setpoint_raw/local", 100, logOffbVel);
+	ros::Subscriber dummy_PID_sub = nh.subscribe<mavros_msgs::PositionTarget>("dummy/PID", 100, logDummyPID);
+	ros::Subscriber dummy_LQR_sub = nh.subscribe<mavros_msgs::PositionTarget>("dummy/LQR", 100, logDummyLQR);
 	ros::Time start = ros::Time::now();//define this as a starting point in time
 	while (ros::ok()) {
 		if (flightStage == 2) {
@@ -141,11 +169,16 @@ int main(int argc, char** argv) {
 			super_logger_file << flightStage << ",";
 			super_logger_file << state_x_error << "," << state_y_error << "," << state_z_error << ",";
 			super_logger_file << offb_x_vel << "," << offb_y_vel << "," << offb_z_vel;
+			if (use_PID_controller == 2) super_logger_file << "," << dummy_PID_x_vel << "," << dummy_PID_y_vel << "," <<dummy_PID_z_vel;
+			if (use_LQR_controller == 2) super_logger_file << "," << dummy_LQR_x_vel << "," << dummy_LQR_y_vel << "," <<dummy_LQR_z_vel;
 			super_logger_file << std::endl;//all of the above is one line
 			super_logger_file.flush();//ensure it is written not buffered
+		} else if (flightStage == 3) {//landing command sent
+			break;
 		}
 		ros::spinOnce(); //call any callbacks waiting
 		rate.sleep(); //sleep for appropriate amt of time to maintain rate
 	}
+	super_logger_file.close();
 	return 0;
 }
