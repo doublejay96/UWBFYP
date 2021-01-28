@@ -1,6 +1,6 @@
 is_leader: true
 waypoints: true
-waypoints_file_path: "/data/square_offset.txt"
-override_home_pos: true
+waypoints_file_path: "/data/hover.txt"
+override_home_pos: false
 home_x: 0
 home_y: -2
