@@ -1,4 +1,5 @@
 //This ROS node reads the filtered UWB readings, converts that into appropriate offboard commands in velocity using the LQR controller, and sends it to the mavros_node node by publishing to 'mavros/setpoint_raw/local' topic. It is always calculating, but only starts sending offboard commands when the 'flight_status' topic lets it know that the previous mavros_takeoff node is done.
+//Now includes D term after LQR and ability to orbit around leader
 #include "ros/ros.h" //all headers necessary for ROS functions
 #include "ros/package.h"
 #include <mavros_msgs/CommandBool.h>//following header files define the ROS message objects in respective namespaces
@@ -149,12 +150,28 @@ int main(int argc, char** argv) {
 		ros::spinOnce(); //call any callbacks waiting
 		rate.sleep();
 	}
+	//Create desired setpoint
 	mavros_msgs::PositionTarget positionTarget;//This is the setpoint we want to move to
 	positionTarget.coordinate_frame = 8;//Set the reference frame of the command to body (FLU) frame
 	//positionTarget.type_mask = 0b110111111000;//set positions only, 3576
 	positionTarget.type_mask = 0b101111000111;//set velocities only, 3527
 	positionTarget.yaw = 0;//yaw locked to 0 (absolute values accepted)
+	//Create orbit parameters
+	bool orbit_leader = false;
+	int orbit_direction = -1;
+	float orbit_period = 60;
+	nh.param("orbit_leader", orbit_leader, false);//if parameter not set, default to FALSE
+	nh.getParam("orbit_direction", orbit_direction);//defaults to clockwise
+	nh.getParam("orbit_period", orbit_period);//defaults to 1 min period
+	orbit_period = orbit_period / dt;//adjust from seconds to 10 Hz update rate
 	int yaw_counter = 0;//start from 0
+	//Create dead zone parameters
+	bool enable_deadzone = true;
+	float deadzone_distance = 0.1, deadzone_factor = 0.1;
+	nh.param("enable_deadzone", enable_deadzone, true);//if parameter not set, default to TRUE
+	enable_deadzone = enable_deadzone && !orbit_leader;//if orbiting leader, deadzone set to off
+	nh.getParam("deadzone_distance", deadzone_distance);
+	nh.getParam("deadzone_factor", deadzone_factor);
 	while (ros::ok() && current_state.connected) {//begin LQR controller
 		if (flightStage == 3) break;
 		x_error = (Ycm - Y_offset)/100;//calculate error in X, convert to m
@@ -168,8 +185,15 @@ int main(int argc, char** argv) {
 		positionTarget.velocity.x = control(0);//update positionTarget with optimal controls
 		positionTarget.velocity.y = control(1);
 		positionTarget.velocity.z = control(2);
-		positionTarget.yaw = yaw_counter * (1.5708 / 150);
-		if (yaw_counter < 150) yaw_counter++;
+		if (orbit_leader) {
+			positionTarget.yaw = yaw_counter * (6.2831853 / orbit_period);//2pi / period
+			yaw_counter = yaw_counter + orbit_direction;
+			if (yaw_counter < 0) {//limit yaw_counter to go from 0 to orbit_period
+				yaw_counter = orbit_period;
+			} else if (yaw_counter > orbit_period) {
+				yaw_counter = 0;
+			}
+		}
 		//avoid overshoot in the case when follower is already heading back to setpoint 0
 		if ((derivative_x > 0.4 && x_error < 0) || (derivative_x < -0.4 && x_error > 0)) {
 			positionTarget.velocity.x = 0.5 * positionTarget.velocity.x;
@@ -181,11 +205,11 @@ int main(int argc, char** argv) {
 		//	positionTarget.velocity.z = 0.5 * positionTarget.velocity.z;
 		//}
 		//Implement 'dead zone' in which no velocity commands are given
-		if (x_error < 0.1 && x_error > -0.1) {
-			positionTarget.velocity.x = 0.1 * positionTarget.velocity.x;
+		if (x_error < deadzone_distance && x_error > -deadzone_distance) {
+			positionTarget.velocity.x = deadzone_factor * positionTarget.velocity.x;
 		}
-		if (y_error < 0.1 && y_error > -0.1) {
-			positionTarget.velocity.y = 0.1 * positionTarget.velocity.y;
+		if (y_error < deadzone_distance && y_error > -deadzone_distance) {
+			positionTarget.velocity.y = deadzone_factor * positionTarget.velocity.y;
 		}
         if (flightStage == 2) {
             if (use_LQR_controller == 1) {

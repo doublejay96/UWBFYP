@@ -7,6 +7,7 @@
 #include "follower/state_error.h"
 #include <geometry_msgs/PoseStamped.h>
 #include <mavros_msgs/PositionTarget.h>
+#include <tf/transform_datatypes.h> //get roll,pitch,yaw
 #include <fstream>
 #include <iostream>
 #include <fcntl.h> 	//open
@@ -18,7 +19,9 @@
 //GLOBAL VARIABLES ARE THOSE BEING LOGGED
 //set initialised values to -1 to tell if they are not being updated
 float vicon_F_x_pos = -1.0, vicon_F_y_pos = -1.0, vicon_F_z_pos = -1.0;
+double vicon_F_roll = -1.0, vicon_F_pitch = -1.0, vicon_F_yaw = -1.0;
 float vicon_L_x_pos = -1.0, vicon_L_y_pos = -1.0, vicon_L_z_pos = -1.0;
+double vicon_L_roll = -1.0, vicon_L_pitch = -1.0, vicon_L_yaw = -1.0;
 int UWB_Xcm = -1, UWB_Ycm = -1;
 float avg_Xcm = -1.0, avg_Ycm = -1.0;
 int flightStage = -1;
@@ -26,16 +29,24 @@ float state_x_error = -1.0, state_y_error = -1.0, state_z_error = -1.0;
 float offb_x_vel = -1.0, offb_y_vel = -1.0, offb_z_vel = -1.0;
 float dummy_PID_x_vel = -1.0, dummy_PID_y_vel = -1.0, dummy_PID_z_vel = -1.0;
 float dummy_LQR_x_vel = -1.0, dummy_LQR_y_vel = -1.0, dummy_LQR_z_vel = -1.0;
+
+double quatx, quaty, quatz, quatw;
 //Callbacks for the global variables
 void logFollowerViconPos (const geometry_msgs::PoseStamped message) {
 	vicon_F_x_pos = message.pose.position.x;
 	vicon_F_y_pos = message.pose.position.y;
 	vicon_F_z_pos = message.pose.position.z;
+	tf::Quaternion q(message.pose.orientation.x, message.pose.orientation.y, message.pose.orientation.z, message.pose.orientation.w);
+	tf::Matrix3x3 m(q);
+	m.getRPY(vicon_F_roll, vicon_F_pitch, vicon_F_yaw);
 }
 void logLeaderViconPos (const geometry_msgs::PoseStamped message) {
 	vicon_L_x_pos = message.pose.position.x;
 	vicon_L_y_pos = message.pose.position.y;
 	vicon_L_z_pos = message.pose.position.z;
+	tf::Quaternion q(message.pose.orientation.x, message.pose.orientation.y, message.pose.orientation.z, message.pose.orientation.w);
+	tf::Matrix3x3 m(q);
+	m.getRPY(vicon_L_roll, vicon_L_pitch, vicon_L_yaw);
 }
 void logUWBNodeReading (const follower::uwb_node_reading message) {
 	UWB_Xcm = message.Xcm;
@@ -139,15 +150,21 @@ int main(int argc, char** argv) {
 	constants_file.close();
 	//Open the actual super_logs.csv file
 	std::string super_logger_path;
+	std::string super_logger_extra_path;
 	std::ofstream super_logger_file;
+	std::ofstream super_logger_extra_file;
 	nh.getParam("super_logger_path", super_logger_path);
+	nh.getParam("super_logger_extra_path", super_logger_extra_path);
 	super_logger_path = ros::package::getPath("follower") + "/../.." + super_logger_path;
+	super_logger_extra_path = ros::package::getPath("follower") + "/../.." + super_logger_extra_path;
 	super_logger_file.open(super_logger_path.c_str());
+	super_logger_extra_file.open(super_logger_extra_path.c_str());
 	//Write the first line of headers
 	super_logger_file << "Time (s), VICON_follower_X_pos (m), VICON_follower_Y_pos (m), VICON_follower_Z_pos (m), VICON_leader_X_pos (m), VICON_leader_Y_pos (m), VICON_leader_Z_pos (m), UWB_Xcm, UWB_Ycm, avg_Xcm, avg_Ycm, flightStage, state_x_error (m), state_y_error (m), state_z_error (m), Offb_x_vel (m/s), Offb_y_vel (m/s), Offb_z_vel (m/s)";
 	if (use_PID_controller == 2) super_logger_file << ", Dummy_PID_x_vel (m/s), Dummy_PID_y_vel (m/s), Dummy_PID_z_vel (m/s)";
 	if (use_LQR_controller == 2) super_logger_file << ", Dummy_LQR_x_vel (m/s), Dummy_LQR_y_vel (m/s), Dummy_LQR_z_vel (m/s)";
 	super_logger_file << std::endl;
+	super_logger_extra_file << "VICON_follower_roll, VICON_follower_pitch, VICON_follower_yaw, VICON_leader_roll, VICON_leader_pitch, VICON_leader_yaw" << std::endl;
 	//Create the many subscribers
 	ros::Subscriber follower_vicon_sub = nh.subscribe<geometry_msgs::PoseStamped>("mavros/vision_pose/pose", 100, logFollowerViconPos);//remapped
 	ros::Subscriber leader_vicon_sub = nh.subscribe<geometry_msgs::PoseStamped>("vrpn_client_node/UWBFYP_leader/pose", 100, logLeaderViconPos);
@@ -173,6 +190,9 @@ int main(int argc, char** argv) {
 			if (use_LQR_controller == 2) super_logger_file << "," << dummy_LQR_x_vel << "," << dummy_LQR_y_vel << "," <<dummy_LQR_z_vel;
 			super_logger_file << std::endl;//all of the above is one line
 			super_logger_file.flush();//ensure it is written not buffered
+			super_logger_extra_file << vicon_F_roll << "," << vicon_F_pitch << "," << vicon_F_yaw << ",";
+			super_logger_extra_file << vicon_L_roll << "," << vicon_L_pitch << "," << vicon_L_yaw;
+			super_logger_extra_file << std::endl;
 		} else if (flightStage == 3) {//landing command sent
 			break;
 		}
