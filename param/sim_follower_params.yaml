@@ -1,10 +1,27 @@
 is_leader: false
 super_logger: true
 super_logger_path: "/logs/super_logs.csv"
-super_logger_constants_path: "/logs/PID_constants.txt"
-use_controller: 1
+super_logger_extra_path: "/logs/super_logs_extra.csv"
+super_logger_constants_path: "/logs/constants.txt"
+# Use controller: 0 for disabled, 1 for active, 2 for dummy publishing
+use_PID_controller: 0
+use_LQR_controller: 1
+use_LQR_higher_controller: 0
+#LQR controller parameters
 SSmodel_path: "/data/state_space_model_sim.csv"
-QR_path: "/data/Q_R_sim.csv"
+#LQR_Q_x: 1.5
+#LQR_Q_y: 1.5
+#LQR_Q_z: 2.0
+LQR_Q_x: 1
+LQR_Q_y: 1
+LQR_Q_z: 1
+LQR_Q_vx: 5
+LQR_Q_vy: 5
+LQR_Q_vz: 5
+LQR_R_vx: 0.1
+LQR_R_vy: 0.1
+LQR_R_vz: 0.1
+#PID controller parameters
 override_PID_constants: true
 PID_Kp_x: 0.45
 PID_Ki_x: 0
@@ -15,9 +32,22 @@ PID_Kd_y: 0.40
 PID_Kp_z: 0.45
 PID_Ki_z: 0
 PID_Kd_z: 0.40
+#Override home: take off from this position instead of (0,0)
 override_home_pos: false
 home_x: 0
 home_y: 0
+#Offset of leader relative to follower
 override_desired_offsets: true
 X_offset: 0
 Y_offset: 200
+#Orbit of leader parameters
+orbit_leader: false
+#Direction: -1 for clockwise, 1 for anticlockwise around leader
+orbit_direction: -1
+#Period: time take to complete 1 orbit in s
+orbit_period: 60
+#Dead zone parameters: enabled or not, distance from 0 in m, multiplier for the velocities
+#Enabling orbit disables deadzone regardless
+enable_deadzone: true
+deadzone_distance: 0.1
+deadzone_factor: 0.1

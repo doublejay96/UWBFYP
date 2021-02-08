@@ -5,12 +5,16 @@ super_logger_extra_path: "/logs/super_logs_extra.csv"
 super_logger_constants_path: "/logs/constants.txt"
 # Use controller: 0 for disabled, 1 for active, 2 for dummy publishing
 use_PID_controller: 0
-use_LQR_controller: 1
+use_LQR_controller: 0
+use_LQR_higher_controller: 1
 #LQR controller parameters
-SSmodel_path: "/data/state_space_model_theory.csv"
+SSmodel_path: "/data/state_space_model_higher.csv"
 LQR_Q_x: 1.5
 LQR_Q_y: 1.5
 LQR_Q_z: 2.0
+LQR_Q_vx: 1
+LQR_Q_vy: 1
+LQR_Q_vz: 1
 LQR_R_vx: 0.05
 LQR_R_vy: 0.05
 LQR_R_vz: 0.8

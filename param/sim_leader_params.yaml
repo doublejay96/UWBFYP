@@ -1,6 +1,6 @@
 is_leader: true
 waypoints: true
-waypoints_file_path: "/data/square_offset.txt"
+waypoints_file_path: "/data/square.txt"
 override_home_pos: false
 home_x: 0
 home_y: -2
