@@ -43,11 +43,7 @@ home_y: 0
 #Offset of leader relative to follower
 override_desired_offsets: true
 X_offset: 0
-<<<<<<< HEAD
-Y_offset: 100
-=======
 Y_offset: 200
->>>>>>> a91a6c0d87c973971f18c405b43dd10053ac0028
 #Orbit of leader parameters
 orbit_leader: false
 #Direction: -1 for clockwise, 1 for anticlockwise around leader
