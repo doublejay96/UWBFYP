@@ -40,42 +40,42 @@ void altitudeCallback(const geometry_msgs::PoseStamped message) {
 	z_error = desired_z - message.pose.position.z;
 }
 void simAltitudeCallback(const follower::sim_altitude message) {
-    z_error = desired_z - message.altitude;
+	z_error = desired_z - message.altitude;
 }
 
 //The actual LQR function
 Eigen::Vector3f LQR(Eigen::Vector3f state_error, Eigen::Matrix3f Q, Eigen::Matrix3f R, Eigen::Matrix3f A, Eigen::Matrix3f B) {
-    int N = 50;//time-horizon
-    std::vector<Eigen::Matrix3f> P_vec (N+1);//Positive,definite,symmetric solution to DARE
-    P_vec[N] = Q;//terminal condition
-    //Pre-compute transposes of A, B to save function calls, A,B do not vary
-    Eigen::Matrix3f A_t = A.transpose();
-    Eigen::Matrix3f B_t = B.transpose();
-    for (int i = N; i > 0; i--) {//Iterate backwards in time
-        //Discrete-time Algebraic Riccati Equation
-        P_vec[i-1] = (A_t * P_vec[i] * A) - (A_t * P_vec[i] * B) * (R + (B_t * P_vec[i] * B)).inverse() * (B_t * P_vec[i] * A) + Q;
-    }
-    std::vector<Eigen::Matrix3f> K_vec (N);//feedback gain matrix K
-    std::vector<Eigen::Vector3f> inputs_vec (N);//control inputs
-    for (int i = 0; i < N; i++) {//Iterate forwards in time
-        K_vec[i] = (R + (B_t * P_vec[i+1] * B)).inverse() * B_t * P_vec[i+1] * A;
-        inputs_vec[i] = K_vec[i] * state_error;
-    }
-    Eigen::Vector3f optimal_input = inputs_vec[N-1];
-    return optimal_input;
+	int N = 50;//time-horizon
+	std::vector<Eigen::Matrix3f> P_vec (N+1);//Positive,definite,symmetric solution to DARE
+	P_vec[N] = Q;//terminal condition
+	//Pre-compute transposes of A, B to save function calls, A,B do not vary
+	Eigen::Matrix3f A_t = A.transpose();
+	Eigen::Matrix3f B_t = B.transpose();
+	for (int i = N; i > 0; i--) {//Iterate backwards in time
+		//Discrete-time Algebraic Riccati Equation
+		P_vec[i-1] = (A_t * P_vec[i] * A) - (A_t * P_vec[i] * B) * (R + (B_t * P_vec[i] * B)).inverse() * (B_t * P_vec[i] * A) + Q;
+	}
+	std::vector<Eigen::Matrix3f> K_vec (N);//feedback gain matrix K
+	std::vector<Eigen::Vector3f> inputs_vec (N);//control inputs
+	for (int i = 0; i < N; i++) {//Iterate forwards in time
+		K_vec[i] = (R + (B_t * P_vec[i+1] * B)).inverse() * B_t * P_vec[i+1] * A;
+		inputs_vec[i] = K_vec[i] * state_error;
+	}
+	Eigen::Vector3f optimal_input = inputs_vec[N-1];
+	return optimal_input;
 }
 
 int main(int argc, char** argv) {
 	ros::init(argc, argv, "mavros_offboard_LQR");//initialise the node, name it "mavros_offboard_LQR"  
 	ros::NodeHandle nh; //construct the first NodeHandle to fully initialise, handle contains communication fns
 	int use_LQR_controller = 0;
-    nh.param("use_LQR_controller", use_LQR_controller, 0);//if not set, default to 0 (PID)
-    if (use_LQR_controller == 0) {
-        ROS_INFO("Not using LQR controller");
-        return 0;//exit the node immediately
-    } else if (use_LQR_controller == 1) {
-        ROS_INFO("Using LQR controller");
-    } else if (use_LQR_controller == 2) {
+	nh.param("use_LQR_controller", use_LQR_controller, 0);//if not set, default to 0 (PID)
+	if (use_LQR_controller == 0) {
+		ROS_INFO("Not using LQR controller");
+		return 0;//exit the node immediately
+	} else if (use_LQR_controller == 1) {
+		ROS_INFO("Using LQR controller");
+	} else if (use_LQR_controller == 2) {
 		ROS_INFO("Using LQR controller in dummy mode");
 	}
 	ros::Subscriber filtered_sub = nh.subscribe<follower::filtered_reading>("filtered_reading", 1000, filteredReadingReceivedCallback);//subscribe to the filtered readings published by the ma_filter node
@@ -98,38 +98,38 @@ int main(int argc, char** argv) {
 	float x_error = 0;//the error value for that instant 
 	float y_error = 0;
 	float prev_x_error = 0;//store the immediately preceding value to calculate derivative
-    float prev_y_error = 0;
-    float prev_z_error = 0;
-    double derivative_x = 0;//the calculated derivative (not stored across time),
-    double derivative_y = 0;//but declare here to avoid re-declaring inside loop
-    double derivative_z = 0;
+	float prev_y_error = 0;
+	float prev_z_error = 0;
+	double derivative_x = 0;//the calculated derivative (not stored across time),
+	double derivative_y = 0;//but declare here to avoid re-declaring inside loop
+	double derivative_z = 0;
 	Eigen::Matrix3f A, B, Q, R;
 	Eigen::Vector3f state, control;
 	//Initialise the A, B matrices from state space model file
-    std::string SSmodel_path = "state_space_model.csv";
+	std::string SSmodel_path = "state_space_model.csv";
 	nh.getParam("SSmodel_path", SSmodel_path);
 	SSmodel_path = ros::package::getPath("follower") + "/../.." + SSmodel_path;
 	std::ifstream SSmodel_file;
-    SSmodel_file.open(SSmodel_path.c_str());
-    std::vector<float> SSmodel_A, SSmodel_B;//temp vector storage for the floats
-    char line[256];
-    char* p;
-    for (int l = 0; l < 6; l++) {
-        SSmodel_file.getline(line, 256);
-        p = line;
-        for (int i = 0; i < 3; i++) {
-            if (l < 3) {
-                SSmodel_A.push_back(atof(p));
-            } else {
-                SSmodel_B.push_back(atof(p));
-            }
-            p = strstr(p, ",") + 1;
-        }
-    }
+	SSmodel_file.open(SSmodel_path.c_str());
+	std::vector<float> SSmodel_A, SSmodel_B;//temp vector storage for the floats
+	char line[256];
+	char* p;
+	for (int l = 0; l < 6; l++) {
+		SSmodel_file.getline(line, 256);
+		p = line;
+		for (int i = 0; i < 3; i++) {
+			if (l < 3) {
+				SSmodel_A.push_back(atof(p));
+			} else {
+				SSmodel_B.push_back(atof(p));
+			}
+			p = strstr(p, ",") + 1;
+		}
+	}
 	SSmodel_file.close();
 	A = Eigen::Map<Eigen::Matrix3f>(SSmodel_A.data());
-    B = Eigen::Map<Eigen::Matrix3f>(SSmodel_B.data());
-    //Initialise the Q, R matrices
+	B = Eigen::Map<Eigen::Matrix3f>(SSmodel_B.data());
+	//Initialise the Q, R matrices
 	nh.getParam("LQR_Q_x", LQR_Q_x);
 	nh.getParam("LQR_Q_y", LQR_Q_y);
 	nh.getParam("LQR_Q_z", LQR_Q_z);
@@ -176,9 +176,9 @@ int main(int argc, char** argv) {
 		if (flightStage == 3) break;
 		x_error = (Ycm - Y_offset)/100;//calculate error in X, convert to m
 		y_error = (Xcm - X_offset)/100;
-        derivative_x = (x_error - prev_x_error) / dt;//calculate the derivative from the previous error value
-        derivative_y = (y_error - prev_y_error) / dt;
-        derivative_z = (z_error - prev_z_error) / dt;
+		derivative_x = (x_error - prev_x_error) / dt;//calculate the derivative from the previous error value
+		derivative_y = (y_error - prev_y_error) / dt;
+		derivative_z = (z_error - prev_z_error) / dt;
 		//z_error is calculated in the callback from the VICON
 		state << x_error, y_error, z_error;//update the current state with the UWB readings
 		control = LQR(state, Q, R, A, B);//Run the LQR
@@ -195,35 +195,37 @@ int main(int argc, char** argv) {
 			}
 		}
 		//avoid overshoot in the case when follower is already heading back to setpoint 0
-		if ((derivative_x > 0.4 && x_error < 0) || (derivative_x < -0.4 && x_error > 0)) {
-			positionTarget.velocity.x = 0.5 * positionTarget.velocity.x;
-		}
-		if ((derivative_y > 0.4 && y_error < 0) || (derivative_y < -0.4 && y_error > 0)) {
-			positionTarget.velocity.y = 0.5 * positionTarget.velocity.y;
-		}
+		//if ((derivative_x > 0.4 && x_error < 0) || (derivative_x < -0.4 && x_error > 0)) {
+		//	positionTarget.velocity.x = 0.5 * positionTarget.velocity.x;
+		//}
+		//if ((derivative_y > 0.4 && y_error < 0) || (derivative_y < -0.4 && y_error > 0)) {
+		//	positionTarget.velocity.y = 0.5 * positionTarget.velocity.y;
+		//}
 		//if ((derivative_z > 0 && z_error < 0) || (derivative_z < 0 && z_error > 0)) {
 		//	positionTarget.velocity.z = 0.5 * positionTarget.velocity.z;
 		//}
 		//Implement 'dead zone' in which no velocity commands are given
-		if (x_error < deadzone_distance && x_error > -deadzone_distance) {
-			positionTarget.velocity.x = deadzone_factor * positionTarget.velocity.x;
+		if (enable_deadzone) {
+			if (x_error < deadzone_distance && x_error > -deadzone_distance) {
+				positionTarget.velocity.x = deadzone_factor * positionTarget.velocity.x;
+			}
+			if (y_error < deadzone_distance && y_error > -deadzone_distance) {
+				positionTarget.velocity.y = deadzone_factor * positionTarget.velocity.y;
+			}
 		}
-		if (y_error < deadzone_distance && y_error > -deadzone_distance) {
-			positionTarget.velocity.y = deadzone_factor * positionTarget.velocity.y;
+		if (flightStage == 2) {
+			if (use_LQR_controller == 1) {
+				target_pos_pub.publish(positionTarget);
+			} else if (use_LQR_controller == 2) {
+				dummy_target_pos_pub.publish(positionTarget);
+			}
 		}
-        if (flightStage == 2) {
-            if (use_LQR_controller == 1) {
-                target_pos_pub.publish(positionTarget);
-            } else if (use_LQR_controller == 2) {
-                dummy_target_pos_pub.publish(positionTarget);
-            }
-        }
 		//ROS_INFO("For x, P: %f, I: %Lf, D:%f, output velocity: %f", x_error, integral_x, derivative_x, positionTarget.velocity.x);
 		//ROS_INFO("For y, P: %f, I: %Lf, D:%f, output velocity: %f", y_error, integral_y, derivative_y, positionTarget.velocity.y);
 		//ROS_INFO("For z, P: %f, I: %Lf, D:%f, output velocity: %f", z_error, integral_z, derivative_z, positionTarget.velocity.z);
 		prev_x_error = x_error;//store the error value for the next loop
-        prev_y_error = y_error;
-        prev_z_error = z_error;
+		prev_y_error = y_error;
+		prev_z_error = z_error;
 		state_error_message.x_error = x_error;
 		state_error_message.y_error = y_error;
 		state_error_message.z_error = z_error;

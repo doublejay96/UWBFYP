@@ -136,12 +136,12 @@ int main(int argc, char** argv) {
 		positionTarget.velocity.y = (Kp_y * y_error) + (Ki_y * integral_y) + (Kd_y * derivative_y);
 		positionTarget.velocity.z = (Kp_z * z_error) + (Ki_z * integral_z) + (Kd_z * derivative_z);
 		//Implement 'dead zone' in which no velocity commands are given
-		if (x_error < 0.1 && x_error > -0.1) {
-			positionTarget.velocity.x = 0;
-		}
-		if (y_error < 0.1 && y_error > -0.1) {
-			positionTarget.velocity.y = 0;
-		}
+		//if (x_error < 0.1 && x_error > -0.1) {
+		//	positionTarget.velocity.x = 0;
+		//}
+		//if (y_error < 0.1 && y_error > -0.1) {
+		//	positionTarget.velocity.y = 0;
+		//}
 		if (flightStage == 2) {
 			if (use_PID_controller == 1) {
 				target_pos_pub.publish(positionTarget);
