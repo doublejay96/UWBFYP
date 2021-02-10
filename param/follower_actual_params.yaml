@@ -8,7 +8,7 @@ use_PID_controller: 0
 use_LQR_controller: 1
 use_LQR_higher_controller: 0
 #LQR controller parameters
-SSmodel_path: "/data/state_space_model_higher.csv"
+SSmodel_path: "/data/state_space_model_theory.csv"
 LQR_Q_x: 1.5
 LQR_Q_y: 1.5
 LQR_Q_z: 2.0
