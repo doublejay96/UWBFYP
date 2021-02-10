@@ -5,6 +5,7 @@
   <node pkg="follower" type="mavros_takeoff_land" name="mavros_takeoff_land" output="screen"/>
   <node pkg="follower" type="mavros_offboard_PID" name="mavros_offboard_PID" output="screen"/>
   <node pkg="follower" type="mavros_offboard_LQR" name="mavros_offboard_LQR" output="screen"/>
+  <node pkg="follower" type="mavros_offboard_LQR_higher" name="mavros_offboard_LQR_higher" output="screen"/>
   <!-- note: mavros_node is launched in the upper-level launch file -->
   <!-- LOAD FOLLOWER PARAMETER FILES (WITHIN FOLLOWER NAMESPACE) -->
   <rosparam command="load" file="param/sim_follower_params.yaml"/>
